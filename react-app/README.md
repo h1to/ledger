@@ -82,14 +82,51 @@ src/
   the on-open currency-rates refresh runs only after that pull — guarding the startup
   race where a stale tab could clobber a newer cloud copy.
 
+## Cloud persistence — pluggable driver (relational by default on this branch)
+
+The reconciliation logic in `store/sync.ts` (pull → compare → hydrate/push, the push-gate,
+timestamps) is independent of *how* the cloud stores data. That's abstracted behind a
+`CloudDriver` (`store/cloud/driver.ts`) with two implementations:
+
+- **`relationalDriver`** (default) — the state is spread across **normalized tables**
+  (`settings`, `currency_rates`, `months`, `incomes`, `expenses`, `rec_actuals`,
+  `recurring`, `goals`, `contributions`, `assets`), each scoped by `user_id` with RLS.
+  Schema: [`db/relational-schema.sql`](db/relational-schema.sql).
+  - **Load** queries every table, assembles a `RowSet`, and maps it back to a
+    `PlannerState` (`lib/repo/mapper.ts`).
+  - **Save** computes a **minimal row-level diff** against the last-synced snapshot
+    (`lib/repo/diff.ts`) and applies only the changed/added/deleted rows — so editing one
+    expense writes one row, not the whole document.
+  - **Migration**: an existing user whose cloud still holds the legacy `planner_data`
+    jsonb blob is transparently unpacked into rows on first load (no manual step).
+- **`blobDriver`** — the original strategy: the whole state as one `jsonb` blob in
+  `planner_data`. Select it with `VITE_CLOUD_DRIVER=blob` to fall back.
+
+The **jsonb-blob** version of the whole app is preserved on the `main` / `jsonb-version`
+git branches; this relational work lives on `db/relational-model`.
+
+The in-memory `PlannerState`, the UI, the pure `lib/` logic, and offline `localStorage`
+are **identical** across both drivers — only the cloud representation differs.
+
+### One-time setup for the relational schema
+
+Run [`db/relational-schema.sql`](db/relational-schema.sql) once in the Supabase SQL editor.
+It creates the tables, indexes, and per-table RLS policies (`auth.uid() = user_id`). The
+legacy `planner_data` table can stay — existing users migrate off it automatically, and it
+remains the store when `VITE_CLOUD_DRIVER=blob`.
+
 ## Tests
 
-`npm run test` runs 57 assertions across:
+`npm run test` runs 71 assertions across:
 
 - **Financial math** with multi-currency, recurring payments, and closed/past-month rules
 - **Health metrics** (savings rate, runway, fixed-cost ratio, net-worth trend)
 - **Migrations** and **jsonb-stable sync comparison**
-- **Sync reconciliation** with a mocked Supabase client — including the stale-device /
+- **Sync reconciliation** with an injected fake driver — including the stale-device /
   push-gate regression
+- **Relational mapper round-trip** (`state → rows → state` is identity) and the **diff
+  engine** (unchanged = no ops, one edit = one upsert, deletions detected)
+- **Relational driver** against a fake Supabase client — real row mapping, minimal-diff
+  saves, deletions, and legacy-blob migration
 - **A render sweep**: every screen and the key modals render in **both English and
   Russian** without throwing (the test that catches missing helpers and i18n gaps)

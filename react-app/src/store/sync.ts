@@ -13,6 +13,9 @@ import {
 import { normalizeState } from '../lib/migrate';
 import { stateForCompare } from '../lib/reconcile';
 import { tt } from '../i18n';
+import type { CloudDriver } from './cloud/driver';
+import { createRelationalDriver } from './cloud/relationalDriver';
+import { createBlobDriver } from './cloud/blobDriver';
 
 interface SyncCfg {
   url: string;
@@ -21,6 +24,7 @@ interface SyncCfg {
 
 let syncCfg: SyncCfg = { url: EMBEDDED_SUPABASE_URL, anonKey: EMBEDDED_SUPABASE_KEY };
 let sb: SupabaseClient | null = null;
+let driver: CloudDriver | null = null; // pluggable cloud persistence (relational by default)
 let authListenerSet = false;
 
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
@@ -70,12 +74,19 @@ export function initSupabase(): boolean {
   if (!syncCfg.url || !syncCfg.anonKey) return false;
   try {
     sb = createClient(syncCfg.url, syncCfg.anonKey);
+    driver = import.meta.env.VITE_CLOUD_DRIVER === 'blob' ? createBlobDriver(sb) : createRelationalDriver(sb);
     authListenerSet = false;
     return true;
   } catch {
     sb = null;
+    driver = null;
     return false;
   }
+}
+
+/** Test-only: inject a fake cloud driver so reconciliation can be tested without Supabase. */
+export function __setDriverForTests(d: CloudDriver | null): void {
+  driver = d;
 }
 
 function toUser(sessionUser: { id: string; email?: string } | null | undefined): AuthUser | null {
@@ -134,7 +145,7 @@ export function schedulePush(): void {
 
 export function pushRemote(): void {
   const user = s().user;
-  if (!sb || !user) return;
+  if (!driver || !user) return;
   if (!syncReady) {
     pendingPush = true;
     return;
@@ -145,57 +156,47 @@ export function pushRemote(): void {
   }
   pushInFlight = true;
   s().setSync('syncing');
-  sb.from('planner_data')
-    .upsert({ user_id: user.id, data: s().state, updated_at: new Date().toISOString() })
-    .then((res) => {
+  driver
+    .save(user.id, s().state)
+    .then(() => {
       pushInFlight = false;
-      if (res.error) {
-        s().setSync('error');
-        s().toast('Sync push failed: ' + res.error.message);
-      } else s().setSync('synced');
+      s().setSync('synced');
       if (pendingPush) {
         pendingPush = false;
         pushRemote();
       }
+    })
+    .catch((e: unknown) => {
+      pushInFlight = false;
+      pendingPush = false; // don't tight-loop on a persistent error; the next pull/edit retries
+      s().setSync('error');
+      s().toast('Sync push failed: ' + (e instanceof Error ? e.message : String(e)));
     });
 }
 
 export function pullRemote(after?: () => void): void {
   const user = s().user;
-  if (!sb || !user) {
+  if (!driver || !user) {
     if (after) after();
     return;
   }
   s().setSync('syncing');
-  sb.from('planner_data')
-    .select('data,updated_at')
-    .eq('user_id', user.id)
-    .maybeSingle()
-    .then((res) => {
+  driver
+    .load(user.id)
+    .then((result) => {
       // Reconciliation is happening now — from here this device is allowed to push again.
       syncReady = true;
       const finish = () => {
         if (after) after();
         maybeStartTour();
       };
-      if (res.error) {
-        s().setSync('error');
-        s().toast('Sync error: ' + res.error.message);
-        if (pendingPush) {
-          pendingPush = false;
-          pushRemote();
-        }
-        finish();
-        return;
-      }
-      const row = res.data as { data?: PlannerState; updated_at?: string } | null;
-      if (!row || !row.data) {
+      if (!result) {
         pendingPush = false;
         pushRemote();
         finish();
         return;
-      } // empty cloud row — seed it from local
-      const remote = row.data;
+      } // empty cloud — seed it from local
+      const remote = result.state;
       const local = s().state;
       if (stateForCompare(remote) === stateForCompare(local)) {
         s().setSync('synced');
@@ -214,7 +215,7 @@ export function pullRemote(after?: () => void): void {
         finish();
         return;
       }
-      const remoteT = Number(remote.lastModified) || (row.updated_at ? new Date(row.updated_at).getTime() : 0);
+      const remoteT = Number(remote.lastModified) || (result.updatedAt ? new Date(result.updatedAt).getTime() : 0);
       const localT = Number(local.lastModified) || 0;
       if (remoteT > localT) {
         s().hydrate(remote);
@@ -226,6 +227,17 @@ export function pullRemote(after?: () => void): void {
         pushRemote(); // local is same age or newer — this device wins
       }
       finish();
+    })
+    .catch((e: unknown) => {
+      syncReady = true;
+      s().setSync('error');
+      s().toast('Sync error: ' + (e instanceof Error ? e.message : String(e)));
+      if (pendingPush) {
+        pendingPush = false;
+        pushRemote();
+      }
+      if (after) after();
+      maybeStartTour();
     });
 }
 
