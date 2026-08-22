@@ -1,0 +1,114 @@
+import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
+import { render, cleanup, screen } from '@testing-library/react';
+import { useStore } from '../store/useStore';
+import { makeState } from './factory';
+import { Dashboard } from '../views/Dashboard';
+import { MonthEditor } from '../views/MonthEditor';
+import { Savings } from '../views/Savings';
+import { Recurring } from '../views/Recurring';
+import { Gate } from '../views/Gate';
+import { AssetModal } from '../components/modals/AssetModal';
+import { RecurringModal } from '../components/modals/RecurringModal';
+import { GoalDetail } from '../components/modals/GoalDetail';
+import type { Lang } from '../types';
+
+beforeAll(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date('2026-08-15T12:00:00Z'));
+});
+afterAll(() => vi.useRealTimers());
+afterEach(cleanup);
+
+function seed() {
+  const s = makeState({
+    recurring: [
+      { id: 'r1', name: 'Rent', type: 'expense', category: 'Housing', amount: 200000, cur: 'KZT', start: '2026-01', end: null },
+      { id: 'r2', name: 'Salary', type: 'income', category: 'Income', amount: 2000, cur: 'USD', start: '2026-01', end: null },
+    ],
+    goals: [{ id: 'g1', name: 'Apartment', target: 5000000, deadline: '2027-06', contribs: { '2026-07': 100000, '2026-08': 50000 } }],
+    assets: [
+      { id: 'a1', name: 'Deposit', kind: 'asset', value: 1000000, cur: 'KZT', liquid: true },
+      { id: 'a2', name: 'Loan', kind: 'liability', value: 300, cur: 'USD' },
+    ],
+    months: {
+      '2026-08': {
+        incomes: [{ id: 'i1', name: 'Freelance', amount: 500, cur: 'USD' }],
+        expenses: [{ id: 'e1', name: 'Food', category: 'Groceries', planned: 150000, actual: 120000, cur: 'KZT' }],
+        recActuals: { r1: 210000 },
+      },
+      '2026-05': { incomes: [], expenses: [{ id: 'e2', name: 'Old', category: 'Other', planned: 50000, actual: 60000, cur: 'KZT' }], recActuals: {}, closed: true, leftover: 40000 },
+    },
+  });
+  useStore.setState({ state: s, appStarted: true, user: { id: 'u1', email: 'a@b.c' } });
+}
+
+const langs: Lang[] = ['en', 'ru'];
+
+describe('render sweep — every screen in both languages must not throw', () => {
+  for (const lang of langs) {
+    it(`dashboard [${lang}]`, () => {
+      seed();
+      useStore.getState().setLang(lang);
+      expect(() => render(<Dashboard />)).not.toThrow();
+    });
+
+    it(`month editor — current [${lang}]`, () => {
+      seed();
+      useStore.getState().setLang(lang);
+      useStore.setState({ view: 'month', openMonthKey: '2026-08' });
+      expect(() => render(<MonthEditor />)).not.toThrow();
+    });
+
+    it(`month editor — closed past [${lang}]`, () => {
+      seed();
+      useStore.getState().setLang(lang);
+      useStore.setState({ view: 'month', openMonthKey: '2026-05' });
+      expect(() => render(<MonthEditor />)).not.toThrow();
+    });
+
+    it(`savings [${lang}]`, () => {
+      seed();
+      useStore.getState().setLang(lang);
+      expect(() => render(<Savings />)).not.toThrow();
+    });
+
+    it(`recurring [${lang}]`, () => {
+      seed();
+      useStore.getState().setLang(lang);
+      expect(() => render(<Recurring />)).not.toThrow();
+    });
+
+    it(`gate [${lang}]`, () => {
+      seed();
+      useStore.getState().setLang(lang);
+      useStore.setState({ appStarted: false, gateMode: 'auth' });
+      expect(() => render(<Gate />)).not.toThrow();
+    });
+
+    it(`modals [${lang}]`, () => {
+      seed();
+      useStore.getState().setLang(lang);
+      expect(() => render(<AssetModal id="a1" />)).not.toThrow();
+      cleanup();
+      expect(() => render(<RecurringModal id="r1" />)).not.toThrow();
+      cleanup();
+      expect(() => render(<GoalDetail goalId="g1" />)).not.toThrow();
+    });
+  }
+
+  it('dashboard shows the hero and net-worth cards', () => {
+    seed();
+    useStore.getState().setLang('en');
+    render(<Dashboard />);
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Net worth ✨')).toBeInTheDocument();
+    expect(screen.getByText('Safety runway')).toBeInTheDocument();
+  });
+
+  it('renders Russian labels when language is ru', () => {
+    seed();
+    useStore.getState().setLang('ru');
+    render(<Dashboard />);
+    expect(screen.getByText('Обзор')).toBeInTheDocument(); // "Dashboard"
+  });
+});

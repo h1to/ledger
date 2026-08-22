@@ -1,0 +1,81 @@
+import { useEffect } from 'react';
+import { useStore } from './store/useStore';
+import { boot } from './store/sync';
+import { fitNumbers } from './lib/fit';
+import { Sidebar, MobileTopbar, BottomNav } from './components/Layout';
+import { Dashboard } from './views/Dashboard';
+import { MonthEditor } from './views/MonthEditor';
+import { Savings } from './views/Savings';
+import { Recurring } from './views/Recurring';
+import { Gate } from './views/Gate';
+import { ModalHost } from './components/modals/ModalHost';
+import { ConfirmDialog } from './components/ConfirmDialog';
+import { Toasts } from './components/Toasts';
+import { Tour } from './components/Tour';
+
+let booted = false;
+
+function MainView() {
+  const view = useStore((s) => s.view);
+  if (view === 'dashboard') return <Dashboard />;
+  if (view === 'month') return <MonthEditor />;
+  if (view === 'savings') return <Savings />;
+  return <Recurring />;
+}
+
+function AppShell() {
+  const view = useStore((s) => s.view);
+  const rev = useStore((s) => s.rev);
+  const lang = useStore((s) => s.lang);
+  const openMonthKey = useStore((s) => s.openMonthKey);
+
+  // Auto-shrink long numbers after every render, and scroll to top on view change.
+  useEffect(() => {
+    fitNumbers();
+  }, [rev, view, lang, openMonthKey]);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [view, openMonthKey]);
+
+  useEffect(() => {
+    const onResize = () => fitNumbers();
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
+    };
+  }, []);
+
+  return (
+    <div id="app">
+      <MobileTopbar />
+      <Sidebar />
+      <div className="main" id="main">
+        <MainView />
+      </div>
+      <BottomNav />
+    </div>
+  );
+}
+
+export default function App() {
+  const appStarted = useStore((s) => s.appStarted);
+
+  useEffect(() => {
+    if (booted) return;
+    booted = true;
+    boot();
+  }, []);
+
+  return (
+    <>
+      {appStarted ? <AppShell /> : <Gate />}
+      <ModalHost />
+      <ConfirmDialog />
+      <Tour />
+      <Toasts />
+    </>
+  );
+}
