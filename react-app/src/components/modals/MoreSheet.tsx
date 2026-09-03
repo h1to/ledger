@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useStore } from '../../store/useStore';
 import { Modal } from '../Modal';
-import { GuideIcon, FeedbackIcon, LangIcon, RatesIcon, ExportIcon } from '../icons';
+import { GuideIcon, FeedbackIcon, LangIcon, ExportIcon, NavIcon } from '../icons';
 import { tt, labelFull } from '../../i18n';
 import { fmt } from '../../lib/format';
 import { nowKey } from '../../lib/dates';
@@ -48,12 +48,18 @@ export function MoreSheet() {
         <div className="stamp-sub">{labelFull(cur)}</div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <MoreItem icon={<span className={'sync-dot ' + sync} style={{ margin: '0 4px' }} />} label={tt('Sync')} sub={syncSub} onClick={() => { closeModal(); openModal({ type: 'sync' }); }} />
+        <div className="nav-item sync-indicator" style={{ width: '100%' }} role="status" aria-live="polite">
+          <span className={'sync-dot ' + sync} style={{ margin: '0 4px' }} />
+          <span>{tt('Sync')}</span>
+          <span style={{ marginLeft: 'auto', fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--faint)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 150 }}>
+            {syncSub}
+          </span>
+        </div>
         <MoreItem icon={<GuideIcon />} label={tt('Guide')} onClick={() => { closeModal(); if (!appStarted) { toast(tt('Sign in')); return; } startTour(); }} />
         <MoreItem icon={<FeedbackIcon />} label={tt('Feedback')} onClick={() => { closeModal(); openModal({ type: 'feedback' }); }} />
         <MoreItem icon={<LangIcon />} label={tt('Language')} sub={lang === 'ru' ? 'Русский' : 'English'} onClick={() => { closeModal(); setLang(lang === 'ru' ? 'en' : 'ru'); }} />
-        <MoreItem icon={<RatesIcon />} label={tt('Rates')} onClick={() => { closeModal(); openModal({ type: 'rates' }); }} />
         <MoreItem icon={<ExportIcon />} label={tt('Export CSV')} onClick={() => { closeModal(); exportCSV(); }} />
+        <MoreItem icon={<NavIcon name="more" />} label={tt('Settings')} onClick={() => { closeModal(); openModal({ type: 'settings' }); }} />
       </div>
       <div className="modal-actions">
         <button className="btn btn-primary btn-small" onClick={closeModal}>{tt('Close')}</button>

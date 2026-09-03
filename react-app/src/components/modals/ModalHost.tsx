@@ -10,7 +10,7 @@ import { CloseMonthModal } from './CloseMonthModal';
 import { RatesModal } from './RatesModal';
 import { ImportModal } from './ImportModal';
 import { FeedbackModal } from './FeedbackModal';
-import { SyncModal } from './SyncModal';
+import { SettingsModal } from './SettingsModal';
 import { MoreSheet } from './MoreSheet';
 
 export function ModalHost() {
@@ -39,8 +39,8 @@ export function ModalHost() {
       return <ImportModal />;
     case 'feedback':
       return <FeedbackModal />;
-    case 'sync':
-      return <SyncModal />;
+    case 'settings':
+      return <SettingsModal />;
     case 'more':
       return <MoreSheet />;
   }

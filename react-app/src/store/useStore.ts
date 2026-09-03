@@ -27,7 +27,7 @@ export type ModalState =
   | { type: 'rates' }
   | { type: 'import' }
   | { type: 'feedback' }
-  | { type: 'sync' }
+  | { type: 'settings' }
   | { type: 'more' };
 
 export interface ConfirmState {

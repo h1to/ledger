@@ -45,6 +45,8 @@ input,select{font-family:var(--sans);color:var(--text);}
 .nav-item:hover{background:var(--card-2);color:var(--text);}
 .nav-item.active{background:var(--card-3);color:var(--text);border-color:var(--border);}
 .nav-item.active svg{color:var(--green);opacity:1;}
+.nav-item.sync-indicator{cursor:default;}
+.nav-item.sync-indicator:hover{background:transparent;color:var(--dim);}
 .side-foot{display:flex;flex-direction:column;gap:4px;border-top:1px solid var(--border);padding-top:12px;}
 /* on desktop the drawer classes are inert */
 @media(min-width:861px){

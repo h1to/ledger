@@ -202,6 +202,12 @@ export const RU: Record<string, string> = {
   'Export backup (.json)': 'Скачать бэкап (.json)',
   'Sign out': 'Выйти',
   'Sync now': 'Синхронизировать',
+  Settings: 'Настройки',
+  'Sync status': 'Статус синхронизации',
+  'Exchange rates': 'Курсы валют',
+  'Confirm password': 'Повторите пароль',
+  'Repeat your password': 'Введите пароль ещё раз',
+  'Passwords do not match': 'Пароли не совпадают',
   'Signed in as': 'Вы вошли как',
   Status: 'Статус',
   'Leftover (KZT)': 'Остаток (KZT)',
@@ -296,8 +302,8 @@ export const RU: Record<string, string> = {
   'Add rent, loans, subscriptions or a salary once — they are included in every month until their end date.':
     'Добавьте аренду, кредиты, подписки или зарплату один раз — они будут в каждом месяце до даты окончания.',
   'Saved and synced': 'Сохранено и синхронизировано',
-  'Everything saves automatically and syncs to the cloud — sign in on any device and your planner follows. Use the Sync menu for backups. Enjoy!':
-    'Всё сохраняется автоматически и уходит в облако — войдите на любом устройстве, и планировщик будет с вами. Бэкапы — в меню синхронизации. Приятного пользования!',
+  'Everything saves automatically and syncs to the cloud — sign in on any device and your planner follows. Open Settings for backups, rates and sign-out. Enjoy!':
+    'Всё сохраняется автоматически и уходит в облако — войдите на любом устройстве, и планировщик будет с вами. Бэкапы, курсы и выход — в «Настройках». Приятного пользования!',
   Step: 'Шаг',
   of: 'из',
   Skip: 'Пропустить',

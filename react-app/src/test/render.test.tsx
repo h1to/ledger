@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
-import { render, cleanup, screen } from '@testing-library/react';
+import { render, cleanup, screen, fireEvent } from '@testing-library/react';
 import { useStore } from '../store/useStore';
 import { makeState } from './factory';
 import { Dashboard } from '../views/Dashboard';
@@ -10,6 +10,7 @@ import { Gate } from '../views/Gate';
 import { AssetModal } from '../components/modals/AssetModal';
 import { RecurringModal } from '../components/modals/RecurringModal';
 import { GoalDetail } from '../components/modals/GoalDetail';
+import { SettingsModal } from '../components/modals/SettingsModal';
 import type { Lang } from '../types';
 
 beforeAll(() => {
@@ -93,8 +94,22 @@ describe('render sweep — every screen in both languages must not throw', () =>
       expect(() => render(<RecurringModal id="r1" />)).not.toThrow();
       cleanup();
       expect(() => render(<GoalDetail goalId="g1" />)).not.toThrow();
+      cleanup();
+      expect(() => render(<SettingsModal />)).not.toThrow();
     });
   }
+
+  it('register mode asks to confirm the password; sign-in mode does not', () => {
+    seed();
+    useStore.getState().setLang('en');
+    useStore.setState({ appStarted: false, gateMode: 'auth' });
+    render(<Gate />);
+    // sign-in mode: single password field, no confirmation
+    expect(screen.queryByText('Confirm password')).toBeNull();
+    // switch to Register
+    fireEvent.click(screen.getByText('Register'));
+    expect(screen.getByText('Confirm password')).toBeInTheDocument();
+  });
 
   it('dashboard shows the hero and net-worth cards', () => {
     seed();

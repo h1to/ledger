@@ -1,6 +1,6 @@
 import { useStore } from '../store/useStore';
 import { navItems } from './nav';
-import { NavIcon, GuideIcon, FeedbackIcon, LangIcon, RatesIcon, ExportIcon, MenuIcon } from './icons';
+import { NavIcon, GuideIcon, FeedbackIcon, LangIcon, ExportIcon, MenuIcon } from './icons';
 import { tt, labelFull } from '../i18n';
 import { fmt } from '../lib/format';
 import { monthTotals } from '../lib/money';
@@ -65,10 +65,10 @@ export function Sidebar() {
         ))}
       </div>
       <div className="side-foot">
-        <button className="nav-item" id="btn-sync" onClick={() => openModal({ type: 'sync' })}>
+        <div className="nav-item sync-indicator" id="btn-sync" role="status" aria-live="polite" title={tt('Sync status')}>
           <span className={'sync-dot ' + sync} />
           <span>{sync === 'synced' ? tt('Synced') : sync === 'syncing' ? tt('Syncing…') : sync === 'error' ? tt('Sync error') : sync === 'ready' ? tt('Sign in') : tt('Sync')}</span>
-        </button>
+        </div>
         <button className="nav-item" onClick={() => (appStarted ? startTour() : toast(tt('Sign in')))}>
           <GuideIcon />
           <span>{tt('Guide')}</span>
@@ -81,13 +81,13 @@ export function Sidebar() {
           <LangIcon />
           <span>{lang === 'ru' ? 'RU' : 'EN'}</span>
         </button>
-        <button className="nav-item" onClick={() => openModal({ type: 'rates' })}>
-          <RatesIcon />
-          <span>{tt('Rates')}</span>
-        </button>
         <button className="nav-item" onClick={exportCSV}>
           <ExportIcon />
           <span>{tt('Export CSV')}</span>
+        </button>
+        <button className="nav-item" id="btn-settings" onClick={() => openModal({ type: 'settings' })}>
+          <NavIcon name="more" />
+          <span>{tt('Settings')}</span>
         </button>
       </div>
     </div>
