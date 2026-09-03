@@ -12,8 +12,21 @@ import { ModalHost } from './components/modals/ModalHost';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { Toasts } from './components/Toasts';
 import { Tour } from './components/Tour';
+import { tt } from './i18n';
 
 let booted = false;
+
+function LoadingScreen() {
+  return (
+    <div id="app">
+      <div className="main" id="main">
+        <div style={{ display: 'flex', minHeight: '60vh', alignItems: 'center', justifyContent: 'center', opacity: 0.6 }}>
+          {tt('Loading…')}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function MainView() {
   const view = useStore((s) => s.view);
@@ -62,6 +75,7 @@ function AppShell() {
 
 export default function App() {
   const appStarted = useStore((s) => s.appStarted);
+  const loading = useStore((s) => s.loading);
 
   useEffect(() => {
     if (booted) return;
@@ -71,7 +85,7 @@ export default function App() {
 
   return (
     <>
-      {appStarted ? <AppShell /> : <Gate />}
+      {appStarted ? loading ? <LoadingScreen /> : <AppShell /> : <Gate />}
       <ModalHost />
       <ConfirmDialog />
       <Tour />

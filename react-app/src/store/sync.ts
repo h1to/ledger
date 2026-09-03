@@ -10,7 +10,7 @@ import {
   RATES_URL,
   WEB3FORMS_KEY,
 } from '../constants';
-import { normalizeState } from '../lib/migrate';
+import { normalizeState, emptyState } from '../lib/migrate';
 import { stateForCompare } from '../lib/reconcile';
 import { tt } from '../i18n';
 import type { CloudDriver } from './cloud/driver';
@@ -35,10 +35,6 @@ let pendingPush = false;
 let syncReady = false;
 
 const s = useStore.getState; // shorthand for latest store snapshot
-
-function storageKeyFor(user: AuthUser | null): string {
-  return user ? STORAGE_KEY + '::' + user.id : STORAGE_KEY;
-}
 
 function loadSyncCfg(): void {
   try {
@@ -93,37 +89,37 @@ function toUser(sessionUser: { id: string; email?: string } | null | undefined):
   return sessionUser ? { id: sessionUser.id, email: sessionUser.email } : null;
 }
 
-// ---- persistence helpers ----
+// ---- one-time migration off localStorage ----
+// The DB is now the single source of truth; the app keeps no local planner-data cache.
+// On first entry we adopt whatever the old local-first version left in localStorage — once —
+// so upgrading users don't lose unsynced edits, then delete those keys for good.
 
-function loadLocal(user: AuthUser | null): PlannerState {
+function legacyKeyFor(user: AuthUser | null): string {
+  return user ? STORAGE_KEY + '::' + user.id : STORAGE_KEY;
+}
+
+function readLegacyLocal(user: AuthUser | null): PlannerState {
   let raw: string | null = null;
   try {
-    raw = localStorage.getItem(storageKeyFor(user));
-    if (!raw && user) {
-      // one-time adoption of data saved before login on this device
-      const legacy = localStorage.getItem(STORAGE_KEY);
-      if (legacy) {
-        raw = legacy;
-        localStorage.setItem(storageKeyFor(user), legacy);
-        try {
-          localStorage.removeItem(STORAGE_KEY);
-        } catch {
-          /* ignore */
-        }
-      }
-    }
+    raw = localStorage.getItem(legacyKeyFor(user)) || (user ? localStorage.getItem(STORAGE_KEY) : null);
   } catch {
     /* ignore */
   }
-  let parsed: unknown = {};
-  if (raw) {
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      parsed = {};
-    }
+  if (!raw) return emptyState();
+  try {
+    return normalizeState(JSON.parse(raw));
+  } catch {
+    return emptyState();
   }
-  return normalizeState(parsed);
+}
+
+function clearLegacyLocal(user: AuthUser | null): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    if (user) localStorage.removeItem(legacyKeyFor(user));
+  } catch {
+    /* ignore */
+  }
 }
 
 function meaningfulLocalData(state: PlannerState): boolean {
@@ -288,13 +284,17 @@ export function enterApp(): void {
   const st = s();
   if (st.appStarted) return;
   st.setAppStarted(true);
-  const local = loadLocal(st.user);
-  st.hydrate(local, { persist: false });
+  // No local cache: the DB is the single source of truth. Seed the in-memory state from any
+  // legacy localStorage data exactly once (upgrade path); a fresh device starts empty.
+  st.hydrate(readLegacyLocal(st.user));
+  st.setLoading(true); // show a loading screen until the first pull returns the cloud copy
   st.setSync('syncing');
   syncReady = false; // block pushes until the initial pull has reconciled with the cloud
   // Refresh currency rates only AFTER reconciling — refreshing calls commit(), and a save on
   // open must not bump the sync clock or push before we know whether the cloud copy is newer.
   pullRemote(() => {
+    s().setLoading(false);
+    clearLegacyLocal(s().user); // migration done — localStorage is no longer used for planner data
     if (ratesStale(s().state)) {
       refreshRates((ok) => {
         if (ok) s().toast(tt('Currency rates refreshed'));
@@ -394,9 +394,10 @@ export async function signOut(): Promise<void> {
   await sb.auth.signOut();
   s().setUser(null);
   s().setAppStarted(false);
+  s().hydrate(emptyState()); // no local cache — clear the in-memory copy on sign-out
   s().setSync('ready');
   s().setGate('auth', '');
-  s().toast(tt('Signed out — data stays on this device'));
+  s().toast(tt('Signed out'));
 }
 
 // ---- feedback ----

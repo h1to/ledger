@@ -236,6 +236,8 @@ export const RU: Record<string, string> = {
   'Could not fetch rates — check connection, or adjust manually': 'Не удалось получить курсы — проверьте связь или укажите вручную',
   'Currency rates refreshed': 'Курсы валют обновлены',
   'Signed out — data stays on this device': 'Вы вышли — данные остались на устройстве',
+  'Signed out': 'Вы вышли',
+  'Loading…': 'Загрузка…',
   'Loaded your data from the cloud': 'Данные загружены из облака',
   'Updated from cloud (newer copy)': 'Обновлено из облака (более свежая копия)',
   'Enter email and password': 'Введите почту и пароль',

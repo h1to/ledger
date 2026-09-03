@@ -89,7 +89,7 @@ describe('sync reconciliation (driver-agnostic; startup-race fix)', () => {
 });
 
 describe('store primitives', () => {
-  it('commit persists locally and triggers a push after reconcile', async () => {
+  it('commit bumps the clock and pushes straight to the DB after reconcile', async () => {
     cloudState = emptyState();
     await new Promise<void>((resolve) => pullRemote(resolve));
     await tick();
@@ -99,7 +99,6 @@ describe('store primitives', () => {
       st.goals.push({ id: 'g', name: 'X', target: 1, deadline: null, contribs: {} });
     });
     expect(useStore.getState().state.lastModified).toBeGreaterThan(0);
-    expect(localStorage.getItem('ledger_planner_v1::u1')).toContain('"name":"X"');
     await new Promise((r) => setTimeout(r, 1600)); // debounced push
     expect(saveCount).toBeGreaterThan(0);
     expect(cloudState?.goals[0]?.name).toBe('X');

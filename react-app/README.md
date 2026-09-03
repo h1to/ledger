@@ -73,14 +73,18 @@ src/
   live in `lib/` as pure functions taking `state` — so they are trivially testable and
   match the original's semantics exactly.
 - **`commit(mutator)`** is the single write primitive: it applies an in-place edit,
-  bumps `lastModified`, persists to `localStorage`, and schedules a cloud push.
-  Loading from the cloud/import uses **`hydrate()`**, which never bumps the clock or
-  pushes — this is what keeps the sync reconciliation honest.
-- **Local-first.** The app is fully usable offline; the cloud is a sync layer on top of
-  `localStorage`. Reconciliation is last-write-wins by `lastModified`, with a **push
-  gate**: a device never pushes over the cloud until its first pull has reconciled, and
-  the on-open currency-rates refresh runs only after that pull — guarding the startup
-  race where a stale tab could clobber a newer cloud copy.
+  bumps `lastModified`, and pushes straight to the DB. Loading from the cloud/import uses
+  **`hydrate()`**, which never bumps the clock or pushes — this is what keeps the sync
+  reconciliation honest.
+- **The DB is the single source of truth.** There is no local planner-data cache: the
+  in-memory Zustand state is the working copy, every edit is pushed to the normalized
+  tables, and on open the state is loaded from the cloud (a loading screen shows until the
+  first pull returns). Reconciliation is last-write-wins by `lastModified`, with a **push
+  gate**: a device never pushes over the cloud until its first pull has reconciled, and the
+  on-open currency-rates refresh runs only after that pull. Upgrading users' old
+  `localStorage` planner data is adopted **once** on first load and then those keys are
+  deleted. (Only the language preference and the Supabase connection config stay in
+  `localStorage` — a per-device UI pref and bootstrap config that can't live in the DB itself.)
 
 ## Cloud persistence — pluggable driver (relational by default on this branch)
 
