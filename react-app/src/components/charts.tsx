@@ -40,8 +40,11 @@ export function DonutSvg({ entries, size = 130 }: { entries: CategoryAggregate[]
   );
 }
 
-export function DonutCard({ title, entries, infoKey }: { title: string; entries: CategoryAggregate[]; infoKey: string }) {
+export function DonutCard({ title, entries, infoKey, pctOf }: { title: string; entries: CategoryAggregate[]; infoKey: string; pctOf?: number }) {
   const total = entries.reduce((s, e) => s + e.val, 0);
+  // Legend percentages are shown relative to `pctOf` (e.g. income) when given, else to the
+  // pie total. The donut arcs are always proportional to the pie total (a ring must fill 360°).
+  const pctBase = pctOf && pctOf > 0 ? pctOf : total;
   const top = entries.slice(0, 8);
   return (
     <div className="card">
@@ -63,7 +66,7 @@ export function DonutCard({ title, entries, infoKey }: { title: string; entries:
                 <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {catLabel(e.name)}
                 </span>
-                <span className="dl-pct">{Math.round((e.val / total) * 100)}%</span>
+                <span className="dl-pct">{Math.round((e.val / pctBase) * 100)}%</span>
               </div>
             ))}
           </div>

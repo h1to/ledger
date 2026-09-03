@@ -300,9 +300,9 @@ function MonthAnalytics({ k }: { k: string }) {
         </div>
       </div>
       <div style={{ height: 12 }} />
-      <DonutCard title={tt('Actual spending by category')} entries={monthCategoryBreakdown(state, k, 'actual')} infoKey="pie_actual" />
+      <DonutCard title={tt('Actual spending by category')} entries={monthCategoryBreakdown(state, k, 'actual')} infoKey="pie_actual" pctOf={t.income} />
       <div style={{ height: 12 }} />
-      <DonutCard title={tt('Planned by category')} entries={monthCategoryBreakdown(state, k, 'planned')} infoKey="pie_planned" />
+      <DonutCard title={tt('Planned by category')} entries={monthCategoryBreakdown(state, k, 'planned')} infoKey="pie_planned" pctOf={t.income} />
     </>
   );
 }
