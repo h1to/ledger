@@ -11,6 +11,7 @@
 create table if not exists public.settings (
   user_id       uuid primary key references auth.users (id) on delete cascade,
   year          integer not null default extract(year from now()),
+  base_cur      text not null default 'KZT',      -- currency all totals/net worth are expressed in
   rates_updated bigint,                          -- ms epoch, matches the in-memory number
   tour_done     boolean not null default false,
   last_modified bigint,                          -- client clock, for last-write-wins reconciliation

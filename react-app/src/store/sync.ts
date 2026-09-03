@@ -7,7 +7,7 @@ import {
   EMBEDDED_SUPABASE_URL,
   EMBEDDED_SUPABASE_KEY,
   CURRENCIES,
-  RATES_URL,
+  ratesUrl,
   WEB3FORMS_KEY,
 } from '../constants';
 import { normalizeState, emptyState } from '../lib/migrate';
@@ -248,13 +248,14 @@ export function refreshRates(cb?: (ok: boolean) => void): void {
     cb?.(false);
     return;
   }
-  fetch(RATES_URL)
+  const base = s().state.baseCur || 'KZT';
+  fetch(ratesUrl(base))
     .then((r) => r.json())
     .then((d) => {
       if (d && d.result === 'success' && d.rates) {
         s().commit((state) => {
           CURRENCIES.forEach((c) => {
-            if (c !== 'KZT' && d.rates[c] > 0) state.rates[c] = 1 / d.rates[c];
+            if (c !== base && d.rates[c] > 0) state.rates[c] = 1 / d.rates[c];
           });
           state.ratesUpdated = Date.now();
         });

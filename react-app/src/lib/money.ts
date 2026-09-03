@@ -11,12 +11,17 @@ import type {
   CategoryAggregate,
 } from '../types';
 import { mk, nowKey, isPast, monthsBetween } from './dates';
+import { defaultRate } from './currency';
 
-/** Convert an amount in `cur` to KZT using the state's rates. */
+/**
+ * Convert an amount in `cur` to the state's base currency using its rates.
+ * (Named `toKZT` for history — KZT is the default base; it converts to whatever base is set.)
+ */
 export function toKZT(state: PlannerState, amount: number, cur: Currency | string | undefined): number {
   const n = Number(amount) || 0;
-  if (!cur || cur === 'KZT') return n;
-  return n * (Number(state.rates[cur as Currency]) || 1);
+  const base = state.baseCur || 'KZT';
+  if (!cur || cur === base) return n;
+  return n * (Number(state.rates[cur as Currency]) || defaultRate(cur as Currency, base));
 }
 
 export function recurringForMonth(state: PlannerState, k: MonthKey): Recurring[] {

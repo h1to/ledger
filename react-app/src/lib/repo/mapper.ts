@@ -7,6 +7,7 @@ export function stateToRowSet(state: PlannerState): RowSet {
   const rs = emptyRowSet();
   rs.settings = {
     year: state.year,
+    baseCur: state.baseCur,
     ratesUpdated: state.ratesUpdated ?? null,
     tourDone: !!state.tourDone,
     lastModified: state.lastModified ?? null,
@@ -51,6 +52,7 @@ export function stateToRowSet(state: PlannerState): RowSet {
 export function rowSetToState(rs: RowSet): PlannerState {
   const state = emptyState();
   state.year = rs.settings.year;
+  state.baseCur = rs.settings.baseCur;
   state.ratesUpdated = rs.settings.ratesUpdated;
   state.tourDone = rs.settings.tourDone;
   state.lastModified = rs.settings.lastModified;

@@ -1,6 +1,6 @@
 /** Info-tip texts, English. Every key must also exist in INFO_RU. */
 export const INFO: Record<string, string> = {
-  inc_year: 'All income logged this year, converted to KZT — salaries, bonuses and recurring income.',
+  inc_year: 'All income logged this year, converted to your base currency — salaries, bonuses and recurring income.',
   spent_year: 'Everything actually spent this year: manual expenses, recurring payments (auto-counted) and savings contributions.',
   saved_year: 'Total put into savings goals this year. Counted inside expenses — it is money that left the month.',
   networth: 'Assets − liabilities + everything saved to goals + leftovers banked from closed months.',
@@ -19,7 +19,7 @@ export const INFO: Record<string, string> = {
   mo_free: 'Income − planned expenses (savings included). The amount that is safe to spend on anything.',
   mo_banked: 'This month is closed — the leftover you confirmed was added to your net worth.',
   mo_passed: 'The month is over. Close it to confirm what was left and bank it into net worth.',
-  sec_income: 'List income sources with amount and currency. Everything converts to KZT for totals.',
+  sec_income: 'List income sources with amount and currency. Everything converts to your base currency for totals.',
   sec_expenses: 'Planned = your budget for the category. Actual = what really happened. Recurring rows and savings contributions appear here automatically.',
   sec_savings: 'Type how much goes to each goal this month. Contributions reduce free-to-spend and count as expenses.',
   ring_info: "Share of this month's income already spent. Green under 80%, amber to 100%, red beyond.",
@@ -35,7 +35,7 @@ export const INFO: Record<string, string> = {
 };
 
 export const INFO_RU: Record<string, string> = {
-  inc_year: 'Все доходы за год, приведённые к тенге — зарплата, бонусы и регулярные поступления.',
+  inc_year: 'Все доходы за год, приведённые к базовой валюте — зарплата, бонусы и регулярные поступления.',
   spent_year: 'Всё, что реально потрачено за год: ручные расходы, регулярные платежи (учитываются автоматически) и взносы на цели.',
   saved_year: 'Сколько отложено на цели за год. Учитывается внутри расходов — это деньги, которые ушли из месяца.',
   networth: 'Активы − обязательства + всё отложенное на цели + остатки закрытых месяцев.',
@@ -54,7 +54,7 @@ export const INFO_RU: Record<string, string> = {
   mo_free: 'Доход − запланированные расходы (включая накопления). Сумма, которую можно спокойно тратить.',
   mo_banked: 'Месяц закрыт — подтверждённый остаток добавлен в ваш капитал.',
   mo_passed: 'Месяц закончился. Закройте его, чтобы подтвердить остаток и зачислить его в капитал.',
-  sec_income: 'Перечислите источники дохода с суммой и валютой. Всё переводится в тенге для итогов.',
+  sec_income: 'Перечислите источники дохода с суммой и валютой. Всё переводится в базовую валюту для итогов.',
   sec_expenses: 'План — ваш бюджет по категории. Факт — что получилось на самом деле. Регулярные платежи и взносы на цели появляются здесь автоматически.',
   sec_savings: 'Укажите, сколько уходит на каждую цель в этом месяце. Взносы уменьшают свободную сумму и считаются расходами.',
   ring_info: 'Доля дохода этого месяца, которая уже потрачена. Зелёный до 80%, жёлтый до 100%, красный дальше.',

@@ -32,7 +32,7 @@ export function ContribModal({ goalId }: { goalId: string }) {
       }}
     >
       <div className="modal-note">{tt('The contribution will appear in that month’s expenses as')} “→ {g.name}”.</div>
-      <div className="field"><label>{tt('Amount (KZT)')}</label><MoneyInput className="mono" value={amount} onCommit={setAmount} /></div>
+      <div className="field"><label>{tt('Amount')} ({state.baseCur})</label><MoneyInput className="mono" value={amount} onCommit={setAmount} /></div>
       <MonthYearSelect prefix="month" value={month} onChange={setMonth} yearsAhead={3} />
     </FormModal>
   );

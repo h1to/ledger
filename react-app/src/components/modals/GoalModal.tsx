@@ -40,7 +40,7 @@ export function GoalModal({ id }: { id: string | null }) {
     >
       <div className="field"><label>{tt('Goal name')}</label>
         <input value={name} placeholder={tt('Goal name')} onChange={(e) => setName(e.target.value)} /></div>
-      <div className="field"><label>{tt('Target amount (KZT)')}</label>
+      <div className="field"><label>{tt('Target amount')} ({state.baseCur})</label>
         <MoneyInput className="mono" value={target} onCommit={setTarget} /></div>
       <div className="checkrow">
         <input type="checkbox" id="g-hasdl" checked={hasDl} onChange={(e) => setHasDl(e.target.checked)} />

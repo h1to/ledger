@@ -1,10 +1,12 @@
-import type { PlannerState } from '../types';
-import { CURRENCIES, DEFAULT_RATES, REC_CATEGORIES } from '../constants';
+import type { PlannerState, Currency } from '../types';
+import { CURRENCIES, REC_CATEGORIES } from '../constants';
+import { defaultRate } from './currency';
 
 /** A fresh, empty planner state. */
 export function emptyState(): PlannerState {
   return {
     year: new Date().getFullYear(),
+    baseCur: 'KZT',
     rates: {},
     ratesUpdated: null,
     months: {},
@@ -25,8 +27,10 @@ export function normalizeState(raw: unknown): PlannerState {
   const base = emptyState();
   const p = (raw && typeof raw === 'object' ? raw : {}) as Partial<PlannerState>;
 
+  const baseCur: Currency = p.baseCur && CURRENCIES.indexOf(p.baseCur) >= 0 ? p.baseCur : 'KZT';
   const state: PlannerState = {
     year: p.year || base.year,
+    baseCur,
     months: (p.months as PlannerState['months']) || {},
     recurring: (p.recurring as PlannerState['recurring']) || [],
     goals: (p.goals as PlannerState['goals']) || [],
@@ -37,8 +41,10 @@ export function normalizeState(raw: unknown): PlannerState {
     lastModified: p.lastModified || null,
   };
 
+  // rates hold every currency except the base; fill any missing/invalid with a default cross-rate.
+  delete state.rates[baseCur];
   CURRENCIES.forEach((c) => {
-    if (c !== 'KZT' && !((state.rates[c] || 0) > 0)) state.rates[c] = DEFAULT_RATES[c] || 1;
+    if (c !== baseCur && !((state.rates[c] || 0) > 0)) state.rates[c] = defaultRate(c, baseCur);
   });
 
   Object.keys(state.months).forEach((k) => {

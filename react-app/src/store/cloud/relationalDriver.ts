@@ -34,7 +34,7 @@ export function createRelationalDriver(sb: SupabaseClient): CloudDriver {
     let any = false;
     if (s) {
       any = true;
-      rs.settings = { year: num(s.year) || new Date().getFullYear(), ratesUpdated: s.rates_updated != null ? num(s.rates_updated) : null, tourDone: !!s.tour_done, lastModified: s.last_modified != null ? num(s.last_modified) : null };
+      rs.settings = { year: num(s.year) || new Date().getFullYear(), baseCur: s.base_cur || 'KZT', ratesUpdated: s.rates_updated != null ? num(s.rates_updated) : null, tourDone: !!s.tour_done, lastModified: s.last_modified != null ? num(s.last_modified) : null };
     }
     (rates.data as any[]).forEach((r) => { rs.rates[r.currency] = num(r.rate); any = true; });
     (months.data as any[]).forEach((r) => { rs.months[r.month_key] = { closed: !!r.closed, leftover: r.leftover != null ? num(r.leftover) : null }; any = true; });
@@ -56,7 +56,7 @@ export function createRelationalDriver(sb: SupabaseClient): CloudDriver {
     const up = (rows: any[]) => rows.length > 0;
 
     // ----- upserts (parents before children: goals before contributions) -----
-    if (diff.settings) await run(sb.from('settings').upsert({ user_id: userId, year: diff.settings.year, rates_updated: diff.settings.ratesUpdated, tour_done: diff.settings.tourDone, last_modified: diff.settings.lastModified, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }));
+    if (diff.settings) await run(sb.from('settings').upsert({ user_id: userId, year: diff.settings.year, base_cur: diff.settings.baseCur, rates_updated: diff.settings.ratesUpdated, tour_done: diff.settings.tourDone, last_modified: diff.settings.lastModified, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }));
 
     let rows: any[];
     rows = Object.keys(diff.rates.upserts).map((c) => ({ user_id: userId, currency: c, rate: diff.rates.upserts[c] }));

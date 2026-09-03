@@ -3,13 +3,17 @@ import { Modal } from '../Modal';
 import { tt } from '../../i18n';
 import { downloadFile } from '../../lib/csv';
 import { pullRemote, signOut } from '../../store/sync';
+import { rebaseRates } from '../../lib/currency';
+import { CURRENCIES, CUR_SYMBOLS } from '../../constants';
 import { RatesIcon, RefreshIcon } from '../icons';
+import type { Currency } from '../../types';
 
 export function SettingsModal() {
   const state = useStore((s) => s.state);
   const user = useStore((s) => s.user);
   const sync = useStore((s) => s.sync);
   const toast = useStore((s) => s.toast);
+  const commit = useStore((s) => s.commit);
   const openModal = useStore((s) => s.openModal);
   const closeModal = useStore((s) => s.closeModal);
   useStore((s) => s.lang);
@@ -30,6 +34,20 @@ export function SettingsModal() {
         ) : (
           tt('Sign in')
         )}
+      </div>
+      <div className="field" style={{ margin: '4px 0 10px' }}>
+        <label>{tt('Base currency')}</label>
+        <select
+          value={state.baseCur}
+          onChange={(e) => commit((s) => rebaseRates(s, e.target.value as Currency))}
+        >
+          {CURRENCIES.map((c) => (
+            <option key={c} value={c}>{c} ({CUR_SYMBOLS[c]})</option>
+          ))}
+        </select>
+        <div className="modal-note" style={{ marginTop: 6 }}>
+          {tt('All totals and net worth are shown in this currency. Changing it re-expresses your rates, savings and banked leftovers; amounts you entered in a specific currency are unchanged.')}
+        </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: '4px 0 10px' }}>
         <button className="nav-item" style={{ width: '100%' }} onClick={() => { closeModal(); openModal({ type: 'rates' }); }}>

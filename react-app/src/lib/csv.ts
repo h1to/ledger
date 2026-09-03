@@ -22,8 +22,9 @@ export function buildCSV(state: PlannerState): string | null {
   const keys = Object.keys(allKeys).sort();
   if (!keys.length && !state.assets.length) return null;
 
+  const base = state.baseCur || 'KZT';
   const rows: (string | number)[][] = [
-    ['Month', 'Type', 'Name', 'Category', 'Currency', 'Planned', 'Actual', 'Amount KZT', 'Note'],
+    ['Month', 'Type', 'Name', 'Category', 'Currency', 'Planned', 'Actual', 'Amount ' + base, 'Note'],
   ];
   keys.forEach((k) => {
     const mo = state.months[k];
@@ -42,10 +43,10 @@ export function buildCSV(state: PlannerState): string | null {
       mo.expenses.forEach((e) => {
         rows.push([labelFull(k), 'Expense', e.name || '', e.category || 'Other', e.cur, e.planned, e.actual, toKZT(state, e.actual, e.cur).toFixed(2), '']);
       });
-      if (mo.closed) rows.push([labelFull(k), 'Closed', 'Leftover', 'Banked', 'KZT', '', mo.leftover || 0, Number(mo.leftover || 0).toFixed(2), 'banked to net worth']);
+      if (mo.closed) rows.push([labelFull(k), 'Closed', 'Leftover', 'Banked', base, '', mo.leftover || 0, Number(mo.leftover || 0).toFixed(2), 'banked to net worth']);
     }
     state.goals.forEach((g) => {
-      if (g.contribs[k]) rows.push([labelFull(k), 'Savings', g.name, 'Savings', 'KZT', '', g.contribs[k], Number(g.contribs[k]).toFixed(2), 'counted as expense']);
+      if (g.contribs[k]) rows.push([labelFull(k), 'Savings', g.name, 'Savings', base, '', g.contribs[k], Number(g.contribs[k]).toFixed(2), 'counted as expense']);
     });
   });
   state.assets.forEach((a) => {

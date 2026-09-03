@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { PlannerState, View, MonthKey, Lang, SyncState } from '../types';
 import { emptyState, normalizeState } from '../lib/migrate';
+import { setBaseCur } from '../lib/format';
 import { setCurrentLang, loadLang } from '../i18n';
 import { nowKey, keyYear } from '../lib/dates';
 
@@ -129,12 +130,14 @@ export const useStore = create<StoreShape>((set, get) => ({
     const s = get().state;
     mutator(s);
     s.lastModified = Date.now();
+    setBaseCur(s.baseCur); // keep fmt()'s base in sync (e.g. after changing the base currency)
     set((st) => ({ state: { ...s }, rev: st.rev + 1 }));
     get().pushHook?.(); // push straight to the DB (user edits only, never cloud loads)
   },
 
   hydrate: (next) => {
     const normalized = normalizeState(next);
+    setBaseCur(normalized.baseCur);
     set((st) => ({ state: normalized, rev: st.rev + 1 }));
   },
 

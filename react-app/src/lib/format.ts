@@ -17,9 +17,16 @@ export function fmtCur(n: number, cur: Currency | string): string {
   return (neg ? '−' : '') + sym + fmtNum(Math.abs(n));
 }
 
-/** KZT with symbol. */
+// The base currency `fmt()` renders in. Kept as a module-level value (like the current language)
+// so the ~100 `fmt(n)` call sites need not thread state through. Updated on every state change.
+let baseCur: Currency = 'KZT';
+export function setBaseCur(c: Currency): void {
+  baseCur = c || 'KZT';
+}
+
+/** Base currency with symbol. */
 export function fmt(n: number): string {
-  return fmtCur(n, 'KZT');
+  return fmtCur(n, baseCur);
 }
 
 /** Strip grouping separators back to a float. */

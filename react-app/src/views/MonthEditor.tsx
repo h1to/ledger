@@ -139,7 +139,7 @@ function IncomeTable({ k }: { k: string }) {
         ))}
       </tbody>
       <tfoot>
-        <tr><td>{tt('Total (KZT)')}</td><td style={{ textAlign: 'right' }}>{fmt(t.income)}</td><td></td><td></td></tr>
+        <tr><td>{tt('Total')} ({state.baseCur})</td><td style={{ textAlign: 'right' }}>{fmt(t.income)}</td><td></td><td></td></tr>
       </tfoot>
     </table>
   );
@@ -192,7 +192,7 @@ function ExpenseTable({ k }: { k: string }) {
               <td><span className="tag">{catLabel('Savings')}</span></td>
               <td style={{ textAlign: 'right' }} className="mono">{fmtNum(c)}</td>
               <td style={{ textAlign: 'right' }} className="mono">{fmtNum(c)}</td>
-              <td style={{ textAlign: 'center' }} className="mono">KZT</td>
+              <td style={{ textAlign: 'center' }} className="mono">{state.baseCur}</td>
               <td style={{ textAlign: 'right' }}><span className="tag">{tt('on plan')}</span></td>
               <td></td>
             </tr>
@@ -227,7 +227,7 @@ function ExpenseTable({ k }: { k: string }) {
       </tbody>
       <tfoot>
         <tr>
-          <td colSpan={2}>{tt('Total (KZT)')}</td>
+          <td colSpan={2}>{tt('Total')} ({state.baseCur})</td>
           <td style={{ textAlign: 'right' }}>{fmt(t.planned)}</td>
           <td style={{ textAlign: 'right' }}>{fmt(t.actual)}</td>
           <td></td>
@@ -263,7 +263,7 @@ function SavingsSection({ k }: { k: string }) {
             <MoneyInput
               className="cell-input mono in"
               value={val}
-              title="Contribution this month (KZT)"
+              title={tt('Contribution this month') + ' (' + state.baseCur + ')'}
               onCommit={(v) =>
                 commit((s) => {
                   const goal = s.goals.find((x) => x.id === g.id);

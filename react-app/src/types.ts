@@ -68,7 +68,9 @@ export interface Asset {
 /** The single persisted planner state object. */
 export interface PlannerState {
   year: number;
-  rates: Partial<Record<Currency, number>>; // 1 unit of currency = N KZT
+  /** the currency all totals, charts and net worth are expressed in. Defaults to KZT. */
+  baseCur: Currency;
+  rates: Partial<Record<Currency, number>>; // 1 unit of currency = N base-currency units (base itself is implicit 1, not stored)
   ratesUpdated: number | null;
   months: Record<MonthKey, Month>;
   recurring: Recurring[];

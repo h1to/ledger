@@ -7,6 +7,7 @@ import type { Currency, RecurringType, AssetKind } from '../../types';
  */
 export interface SettingsRow {
   year: number;
+  baseCur: Currency;
   ratesUpdated: number | null;
   tourDone: boolean;
   lastModified: number | null;
@@ -79,7 +80,7 @@ export const contributionKey = (goalId: string, monthKey: string) => goalId + '|
 
 export function emptyRowSet(): RowSet {
   return {
-    settings: { year: new Date().getFullYear(), ratesUpdated: null, tourDone: false, lastModified: null },
+    settings: { year: new Date().getFullYear(), baseCur: 'KZT', ratesUpdated: null, tourDone: false, lastModified: null },
     rates: {},
     months: {},
     incomes: {},
