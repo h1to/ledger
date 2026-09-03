@@ -1,6 +1,11 @@
 -- Money Planner — normalized relational schema (replaces the single planner_data jsonb blob).
 -- Every table is scoped by user_id and protected by Row-Level Security tied to auth.uid().
 -- Run once in the Supabase SQL editor. Safe to re-run (IF NOT EXISTS / OR REPLACE).
+--
+-- Note on id types: rows the app creates (incomes, expenses, recurring, goals, assets, and
+-- the recurring_id / goal_id references) use TEXT ids, not uuid — the client generates
+-- base36 ids via uid() (see src/lib/format.ts), not UUIDs. Only user_id is a real uuid
+-- (it references auth.users).
 
 -- ---------- settings (one row per user; the singletons) ----------
 create table if not exists public.settings (
@@ -30,7 +35,7 @@ create table if not exists public.months (
 );
 
 create table if not exists public.incomes (
-  id        uuid primary key,
+  id        text primary key,
   user_id   uuid not null references auth.users (id) on delete cascade,
   month_key text not null,
   name      text not null default '',
@@ -40,7 +45,7 @@ create table if not exists public.incomes (
 create index if not exists incomes_user_month on public.incomes (user_id, month_key);
 
 create table if not exists public.expenses (
-  id        uuid primary key,
+  id        text primary key,
   user_id   uuid not null references auth.users (id) on delete cascade,
   month_key text not null,
   name      text not null default '',
@@ -55,14 +60,14 @@ create index if not exists expenses_user_month on public.expenses (user_id, mont
 create table if not exists public.rec_actuals (
   user_id      uuid not null references auth.users (id) on delete cascade,
   month_key    text not null,
-  recurring_id uuid not null,
+  recurring_id text not null,
   amount       numeric not null,
   primary key (user_id, month_key, recurring_id)
 );
 
 -- ---------- recurring payments/income ----------
 create table if not exists public.recurring (
-  id        uuid primary key,
+  id        text primary key,
   user_id   uuid not null references auth.users (id) on delete cascade,
   name      text not null default '',
   type      text not null check (type in ('expense', 'income')),
@@ -76,7 +81,7 @@ create index if not exists recurring_user on public.recurring (user_id);
 
 -- ---------- goals + contributions ----------
 create table if not exists public.goals (
-  id           uuid primary key,
+  id           text primary key,
   user_id      uuid not null references auth.users (id) on delete cascade,
   name         text not null default '',
   target       numeric not null default 0,
@@ -86,7 +91,7 @@ create index if not exists goals_user on public.goals (user_id);
 
 create table if not exists public.contributions (
   user_id   uuid not null references auth.users (id) on delete cascade,
-  goal_id   uuid not null references public.goals (id) on delete cascade,
+  goal_id   text not null references public.goals (id) on delete cascade,
   month_key text not null,
   amount    numeric not null,
   primary key (user_id, goal_id, month_key)
@@ -95,7 +100,7 @@ create index if not exists contributions_user on public.contributions (user_id);
 
 -- ---------- assets & liabilities ----------
 create table if not exists public.assets (
-  id      uuid primary key,
+  id      text primary key,
   user_id uuid not null references auth.users (id) on delete cascade,
   name    text not null default '',
   kind    text not null check (kind in ('asset', 'liability')),
