@@ -66,6 +66,7 @@ interface StoreShape {
   modal: ModalState | null;
   confirm: ConfirmState | null;
   tour: TourState;
+  onboardingActive: boolean; // first-run setup wizard (distinct from the guided tour)
 
   /** Set by the sync controller: called after every user edit to schedule a cloud push. */
   pushHook: (() => void) | null;
@@ -101,6 +102,9 @@ interface StoreShape {
   startTour: () => void;
   setTour: (t: TourState) => void;
   endTour: () => void;
+
+  startOnboarding: () => void;
+  endOnboarding: () => void;
 }
 
 export const useStore = create<StoreShape>((set, get) => ({
@@ -122,6 +126,7 @@ export const useStore = create<StoreShape>((set, get) => ({
   modal: null,
   confirm: null,
   tour: { active: false, index: 0 },
+  onboardingActive: false,
 
   pushHook: null,
   setPushHook: (fn) => set({ pushHook: fn }),
@@ -199,6 +204,9 @@ export const useStore = create<StoreShape>((set, get) => ({
     });
     set({ tour: { active: false, index: 0 }, view: 'dashboard' });
   },
+
+  startOnboarding: () => set({ onboardingActive: true }),
+  endOnboarding: () => set({ onboardingActive: false, view: 'dashboard' }),
 }));
 
 /** Non-hook access for the sync controller and tests. */

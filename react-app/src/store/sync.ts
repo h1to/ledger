@@ -184,7 +184,7 @@ export function pullRemote(after?: () => void): void {
       syncReady = true;
       const finish = () => {
         if (after) after();
-        maybeStartTour();
+        maybeStartOnboarding();
       };
       if (!result) {
         pendingPush = false;
@@ -233,7 +233,7 @@ export function pullRemote(after?: () => void): void {
         pushRemote();
       }
       if (after) after();
-      maybeStartTour();
+      maybeStartOnboarding();
     });
 }
 
@@ -267,16 +267,18 @@ export function refreshRates(cb?: (ok: boolean) => void): void {
 
 // ---- tour ----
 
-function maybeStartTour(): void {
+// First-run: a brand-new, empty account gets the setup wizard (the guided tour stays available
+// from the Guide button). Existing accounts with data have already been through it — mark done.
+function maybeStartOnboarding(): void {
   const st = s();
-  if (st.tour.active || !st.appStarted || st.state.tourDone) return;
+  if (st.onboardingActive || st.tour.active || !st.appStarted || st.state.tourDone) return;
   if (meaningfulLocalData(st.state)) {
     st.commit((state) => {
       state.tourDone = true;
     });
     return;
   }
-  st.startTour();
+  st.startOnboarding();
 }
 
 // ---- session lifecycle ----

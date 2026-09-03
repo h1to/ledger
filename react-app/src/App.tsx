@@ -12,6 +12,7 @@ import { ModalHost } from './components/modals/ModalHost';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { Toasts } from './components/Toasts';
 import { Tour } from './components/Tour';
+import { Onboarding } from './components/Onboarding';
 import { tt } from './i18n';
 
 let booted = false;
@@ -76,6 +77,7 @@ function AppShell() {
 export default function App() {
   const appStarted = useStore((s) => s.appStarted);
   const loading = useStore((s) => s.loading);
+  const onboardingActive = useStore((s) => s.onboardingActive);
 
   useEffect(() => {
     if (booted) return;
@@ -86,6 +88,7 @@ export default function App() {
   return (
     <>
       {appStarted ? loading ? <LoadingScreen /> : <AppShell /> : <Gate />}
+      {onboardingActive && <Onboarding />}
       <ModalHost />
       <ConfirmDialog />
       <Tour />
