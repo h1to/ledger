@@ -14,5 +14,6 @@ export function navItems(): NavItem[] {
     { key: 'thismonth', label: tt('This month'), icon: 'thismonth' },
     { key: 'savings', label: tt('Savings'), icon: 'savings' },
     { key: 'recurring', label: tt('Recurring'), icon: 'recurring' },
+    { key: 'loans', label: tt('Loans'), icon: 'loans' },
   ];
 }

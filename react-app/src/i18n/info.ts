@@ -32,6 +32,7 @@ export const INFO: Record<string, string> = {
   sv_needed: 'How much is still missing to complete every goal.',
   goals_info: 'Set a target and optional deadline — the app computes the monthly amount needed. Tap a goal card to see and edit every contribution.',
   rec_info: 'Set a payment or income once — it is included automatically in every month from its start date to its end date (or forever).',
+  loans_info: "Loans you're repaying. Each loan's monthly payment is automatically counted as an expense in every month from its start date to its end date. Interest rate and total overpayment are optional notes.",
 };
 
 export const INFO_RU: Record<string, string> = {
@@ -67,4 +68,5 @@ export const INFO_RU: Record<string, string> = {
   sv_needed: 'Сколько ещё не хватает, чтобы закрыть все цели.',
   goals_info: 'Задайте сумму и срок — приложение посчитает нужный ежемесячный взнос и будет следить за темпом. Нажмите на цель, чтобы посмотреть и изменить все взносы.',
   rec_info: 'Задайте платёж или доход один раз — он автоматически попадёт в каждый месяц от даты начала до даты окончания (или бессрочно).',
+  loans_info: 'Кредиты, которые вы выплачиваете. Ежемесячный платёж по каждому кредиту автоматически учитывается как расход в каждом месяце от даты начала до даты окончания. Ставка и общая переплата — необязательные заметки.',
 };

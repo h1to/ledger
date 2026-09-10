@@ -30,6 +30,7 @@ export interface RowSetDiff {
   expenses: CollDiff<RowSet['expenses'][string]>;
   recActuals: CollDiff<RowSet['recActuals'][string]>;
   recurring: CollDiff<RowSet['recurring'][string]>;
+  loans: CollDiff<RowSet['loans'][string]>;
   goals: CollDiff<RowSet['goals'][string]>;
   contributions: CollDiff<RowSet['contributions'][string]>;
   assets: CollDiff<RowSet['assets'][string]>;
@@ -45,6 +46,7 @@ export function diffRowSets(prev: RowSet, next: RowSet): RowSetDiff {
     expenses: diffColl(prev.expenses, next.expenses),
     recActuals: diffColl(prev.recActuals, next.recActuals),
     recurring: diffColl(prev.recurring, next.recurring),
+    loans: diffColl(prev.loans, next.loans),
     goals: diffColl(prev.goals, next.goals),
     contributions: diffColl(prev.contributions, next.contributions),
     assets: diffColl(prev.assets, next.assets),
@@ -62,6 +64,7 @@ export function isEmptyDiff(d: RowSetDiff): boolean {
     collEmpty(d.expenses) &&
     collEmpty(d.recActuals) &&
     collEmpty(d.recurring) &&
+    collEmpty(d.loans) &&
     collEmpty(d.goals) &&
     collEmpty(d.contributions) &&
     collEmpty(d.assets)

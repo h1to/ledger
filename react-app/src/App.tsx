@@ -7,6 +7,7 @@ import { Dashboard } from './views/Dashboard';
 import { MonthEditor } from './views/MonthEditor';
 import { Savings } from './views/Savings';
 import { Recurring } from './views/Recurring';
+import { Loans } from './views/Loans';
 import { Gate } from './views/Gate';
 import { ModalHost } from './components/modals/ModalHost';
 import { ConfirmDialog } from './components/ConfirmDialog';
@@ -34,6 +35,7 @@ function MainView() {
   if (view === 'dashboard') return <Dashboard />;
   if (view === 'month') return <MonthEditor />;
   if (view === 'savings') return <Savings />;
+  if (view === 'loans') return <Loans />;
   return <Recurring />;
 }
 

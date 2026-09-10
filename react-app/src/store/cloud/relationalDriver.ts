@@ -21,12 +21,12 @@ export function createRelationalDriver(sb: SupabaseClient): CloudDriver {
 
   async function fetchRowSet(userId: string): Promise<{ rs: RowSet; updatedAt: string | null; any: boolean } | null> {
     const q = (t: string, cols = '*') => sb.from(t).select(cols).eq('user_id', userId);
-    const [settings, rates, months, incomes, expenses, recActuals, recurring, goals, contributions, assets] = await Promise.all([
+    const [settings, rates, months, incomes, expenses, recActuals, recurring, loans, goals, contributions, assets] = await Promise.all([
       sb.from('settings').select('*').eq('user_id', userId).maybeSingle(),
       q('currency_rates'), q('months'), q('incomes'), q('expenses'), q('rec_actuals'),
-      q('recurring'), q('goals'), q('contributions'), q('assets'),
+      q('recurring'), q('loans'), q('goals'), q('contributions'), q('assets'),
     ]);
-    for (const r of [settings, rates, months, incomes, expenses, recActuals, recurring, goals, contributions, assets]) {
+    for (const r of [settings, rates, months, incomes, expenses, recActuals, recurring, loans, goals, contributions, assets]) {
       if ((r as any).error) throw new Error((r as any).error.message);
     }
     const rs = emptyRowSet();
@@ -42,6 +42,7 @@ export function createRelationalDriver(sb: SupabaseClient): CloudDriver {
     (expenses.data as any[]).forEach((r) => { rs.expenses[r.id] = { monthKey: r.month_key, name: r.name ?? '', category: r.category ?? 'Other', planned: num(r.planned), actual: num(r.actual), cur: r.cur }; any = true; });
     (recActuals.data as any[]).forEach((r) => { rs.recActuals[recActualKey(r.month_key, r.recurring_id)] = { monthKey: r.month_key, recurringId: r.recurring_id, amount: num(r.amount) }; any = true; });
     (recurring.data as any[]).forEach((r) => { rs.recurring[r.id] = { name: r.name ?? '', type: r.type, category: r.category ?? 'Other', amount: num(r.amount), cur: r.cur, startKey: r.start_key, endKey: r.end_key ?? null }; any = true; });
+    (loans.data as any[]).forEach((r) => { rs.loans[r.id] = { name: r.name ?? '', payment: num(r.payment), cur: r.cur, startKey: r.start_key, endKey: r.end_key, rate: r.rate != null ? num(r.rate) : null, overpayment: r.overpayment != null ? num(r.overpayment) : null }; any = true; });
     (goals.data as any[]).forEach((r) => { rs.goals[r.id] = { name: r.name ?? '', target: num(r.target), deadlineKey: r.deadline_key ?? null }; any = true; });
     (contributions.data as any[]).forEach((r) => { rs.contributions[contributionKey(r.goal_id, r.month_key)] = { goalId: r.goal_id, monthKey: r.month_key, amount: num(r.amount) }; any = true; });
     (assets.data as any[]).forEach((r) => { rs.assets[r.id] = { name: r.name ?? '', kind: r.kind, value: num(r.value), cur: r.cur, liquid: r.liquid !== false }; any = true; });
@@ -68,6 +69,9 @@ export function createRelationalDriver(sb: SupabaseClient): CloudDriver {
     rows = Object.keys(diff.recurring.upserts).map((id) => { const r = diff.recurring.upserts[id]; return { id, user_id: userId, name: r.name, type: r.type, category: r.category, amount: r.amount, cur: r.cur, start_key: r.startKey, end_key: r.endKey }; });
     if (up(rows)) await run(sb.from('recurring').upsert(rows, { onConflict: 'id' }));
 
+    rows = Object.keys(diff.loans.upserts).map((id) => { const r = diff.loans.upserts[id]; return { id, user_id: userId, name: r.name, payment: r.payment, cur: r.cur, start_key: r.startKey, end_key: r.endKey, rate: r.rate, overpayment: r.overpayment }; });
+    if (up(rows)) await run(sb.from('loans').upsert(rows, { onConflict: 'id' }));
+
     rows = Object.keys(diff.goals.upserts).map((id) => { const r = diff.goals.upserts[id]; return { id, user_id: userId, name: r.name, target: r.target, deadline_key: r.deadlineKey }; });
     if (up(rows)) await run(sb.from('goals').upsert(rows, { onConflict: 'id' }));
 
@@ -93,6 +97,7 @@ export function createRelationalDriver(sb: SupabaseClient): CloudDriver {
     if (diff.expenses.deletes.length) await run(sb.from('expenses').delete().eq('user_id', userId).in('id', diff.expenses.deletes));
     if (diff.months.deletes.length) await run(sb.from('months').delete().eq('user_id', userId).in('month_key', diff.months.deletes));
     if (diff.recurring.deletes.length) await run(sb.from('recurring').delete().eq('user_id', userId).in('id', diff.recurring.deletes));
+    if (diff.loans.deletes.length) await run(sb.from('loans').delete().eq('user_id', userId).in('id', diff.loans.deletes));
     if (diff.goals.deletes.length) await run(sb.from('goals').delete().eq('user_id', userId).in('id', diff.goals.deletes));
     if (diff.assets.deletes.length) await run(sb.from('assets').delete().eq('user_id', userId).in('id', diff.assets.deletes));
     if (diff.rates.deletes.length) await run(sb.from('currency_rates').delete().eq('user_id', userId).in('currency', diff.rates.deletes));

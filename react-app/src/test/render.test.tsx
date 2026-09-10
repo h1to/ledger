@@ -6,9 +6,11 @@ import { Dashboard } from '../views/Dashboard';
 import { MonthEditor } from '../views/MonthEditor';
 import { Savings } from '../views/Savings';
 import { Recurring } from '../views/Recurring';
+import { Loans } from '../views/Loans';
 import { Gate } from '../views/Gate';
 import { AssetModal } from '../components/modals/AssetModal';
 import { RecurringModal } from '../components/modals/RecurringModal';
+import { LoanModal } from '../components/modals/LoanModal';
 import { GoalDetail } from '../components/modals/GoalDetail';
 import { SettingsModal } from '../components/modals/SettingsModal';
 import type { Lang } from '../types';
@@ -26,6 +28,7 @@ function seed() {
       { id: 'r1', name: 'Rent', type: 'expense', category: 'Housing', amount: 200000, cur: 'KZT', start: '2026-01', end: null },
       { id: 'r2', name: 'Salary', type: 'income', category: 'Income', amount: 2000, cur: 'USD', start: '2026-01', end: null },
     ],
+    loans: [{ id: 'l1', name: 'Car loan', payment: 100000, cur: 'KZT', start: '2026-01', end: '2027-01', rate: 15, overpayment: 180000 }],
     goals: [{ id: 'g1', name: 'Apartment', target: 5000000, deadline: '2027-06', contribs: { '2026-07': 100000, '2026-08': 50000 } }],
     assets: [
       { id: 'a1', name: 'Deposit', kind: 'asset', value: 1000000, cur: 'KZT', liquid: true },
@@ -79,6 +82,12 @@ describe('render sweep — every screen in both languages must not throw', () =>
       expect(() => render(<Recurring />)).not.toThrow();
     });
 
+    it(`loans [${lang}]`, () => {
+      seed();
+      useStore.getState().setLang(lang);
+      expect(() => render(<Loans />)).not.toThrow();
+    });
+
     it(`gate [${lang}]`, () => {
       seed();
       useStore.getState().setLang(lang);
@@ -92,6 +101,8 @@ describe('render sweep — every screen in both languages must not throw', () =>
       expect(() => render(<AssetModal id="a1" />)).not.toThrow();
       cleanup();
       expect(() => render(<RecurringModal id="r1" />)).not.toThrow();
+      cleanup();
+      expect(() => render(<LoanModal id="l1" />)).not.toThrow();
       cleanup();
       expect(() => render(<GoalDetail goalId="g1" />)).not.toThrow();
       cleanup();

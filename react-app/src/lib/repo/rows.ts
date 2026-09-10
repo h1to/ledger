@@ -44,6 +44,15 @@ export interface RecurringRow {
   startKey: string;
   endKey: string | null;
 }
+export interface LoanRow {
+  name: string;
+  payment: number;
+  cur: Currency;
+  startKey: string;
+  endKey: string;
+  rate: number | null;
+  overpayment: number | null;
+}
 export interface GoalRow {
   name: string;
   target: number;
@@ -70,6 +79,7 @@ export interface RowSet {
   expenses: Record<string, ExpenseRow>; // id -> row
   recActuals: Record<string, RecActualRow>; // `${monthKey}|${recurringId}` -> row
   recurring: Record<string, RecurringRow>; // id -> row
+  loans: Record<string, LoanRow>; // id -> row
   goals: Record<string, GoalRow>; // id -> row
   contributions: Record<string, ContributionRow>; // `${goalId}|${monthKey}` -> row
   assets: Record<string, AssetRow>; // id -> row
@@ -87,6 +97,7 @@ export function emptyRowSet(): RowSet {
     expenses: {},
     recActuals: {},
     recurring: {},
+    loans: {},
     goals: {},
     contributions: {},
     assets: {},

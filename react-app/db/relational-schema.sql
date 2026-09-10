@@ -80,6 +80,20 @@ create table if not exists public.recurring (
 );
 create index if not exists recurring_user on public.recurring (user_id);
 
+-- ---------- loans (fixed monthly payment, auto-counted as a monthly expense) ----------
+create table if not exists public.loans (
+  id          text primary key,
+  user_id     uuid not null references auth.users (id) on delete cascade,
+  name        text not null default '',
+  payment     numeric not null default 0,
+  cur         text not null default 'KZT',
+  start_key   text not null,
+  end_key     text not null,
+  rate        numeric,   -- annual interest %, optional
+  overpayment numeric    -- total interest over the loan's life, optional
+);
+create index if not exists loans_user on public.loans (user_id);
+
 -- ---------- goals + contributions ----------
 create table if not exists public.goals (
   id           text primary key,
@@ -117,7 +131,7 @@ declare t text;
 begin
   foreach t in array array[
     'settings','currency_rates','months','incomes','expenses',
-    'rec_actuals','recurring','goals','contributions','assets'
+    'rec_actuals','recurring','loans','goals','contributions','assets'
   ] loop
     execute format('alter table public.%I enable row level security;', t);
     execute format('drop policy if exists own_rows on public.%I;', t);

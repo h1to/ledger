@@ -11,6 +11,7 @@ export function emptyState(): PlannerState {
     ratesUpdated: null,
     months: {},
     recurring: [],
+    loans: [],
     goals: [],
     assets: [],
     tourDone: false,
@@ -33,6 +34,7 @@ export function normalizeState(raw: unknown): PlannerState {
     baseCur,
     months: (p.months as PlannerState['months']) || {},
     recurring: (p.recurring as PlannerState['recurring']) || [],
+    loans: (p.loans as PlannerState['loans']) || [],
     goals: (p.goals as PlannerState['goals']) || [],
     assets: (p.assets as PlannerState['assets']) || [],
     tourDone: !!p.tourDone,
@@ -66,6 +68,14 @@ export function normalizeState(raw: unknown): PlannerState {
   state.recurring.forEach((r) => {
     if (!r.cur) r.cur = 'KZT';
     if (!r.category) r.category = r.type === 'income' ? 'Income' : 'Other';
+  });
+
+  state.loans.forEach((l) => {
+    if (!l.cur) l.cur = baseCur;
+    if (!l.start) l.start = base.year + '-01';
+    if (!l.end) l.end = l.start;
+    if (l.rate === undefined) l.rate = null;
+    if (l.overpayment === undefined) l.overpayment = null;
   });
 
   state.goals.forEach((g) => {

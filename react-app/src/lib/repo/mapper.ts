@@ -36,6 +36,9 @@ export function stateToRowSet(state: PlannerState): RowSet {
   state.recurring.forEach((r) => {
     rs.recurring[r.id] = { name: r.name, type: r.type, category: r.category, amount: r.amount, cur: r.cur, startKey: r.start, endKey: r.end ?? null };
   });
+  state.loans.forEach((l) => {
+    rs.loans[l.id] = { name: l.name, payment: l.payment, cur: l.cur, startKey: l.start, endKey: l.end, rate: l.rate ?? null, overpayment: l.overpayment ?? null };
+  });
   state.goals.forEach((g) => {
     rs.goals[g.id] = { name: g.name, target: g.target, deadlineKey: g.deadline ?? null };
     for (const mk of Object.keys(g.contribs)) {
@@ -87,6 +90,11 @@ export function rowSetToState(rs: RowSet): PlannerState {
   state.recurring = Object.keys(rs.recurring).map((id) => {
     const r = rs.recurring[id];
     return { id, name: r.name, type: r.type, category: r.category, amount: r.amount, cur: r.cur, start: r.startKey, end: r.endKey };
+  });
+
+  state.loans = Object.keys(rs.loans).map((id) => {
+    const r = rs.loans[id];
+    return { id, name: r.name, payment: r.payment, cur: r.cur, start: r.startKey, end: r.endKey, rate: r.rate, overpayment: r.overpayment };
   });
 
   const goalById: Record<string, PlannerState['goals'][number]> = {};

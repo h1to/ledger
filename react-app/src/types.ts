@@ -44,6 +44,22 @@ export interface Recurring {
   end: MonthKey | null;
 }
 
+/**
+ * A loan: a fixed monthly payment from `start` to `end` (inclusive). Its monthly payment is
+ * auto-counted in each active month's expenses (category "Debts & loans"). `rate` (annual %)
+ * and `overpayment` (total interest over the loan's life, in `cur`) are optional info figures.
+ */
+export interface Loan {
+  id: string;
+  name: string;
+  payment: number;
+  cur: Currency;
+  start: MonthKey;
+  end: MonthKey;
+  rate: number | null;
+  overpayment: number | null;
+}
+
 export interface Goal {
   id: string;
   name: string;
@@ -74,6 +90,7 @@ export interface PlannerState {
   ratesUpdated: number | null;
   months: Record<MonthKey, Month>;
   recurring: Recurring[];
+  loans: Loan[];
   goals: Goal[];
   assets: Asset[];
   tourDone: boolean;
@@ -112,5 +129,5 @@ export interface DisplayFree {
   state: DisplayFreeState;
 }
 
-export type View = 'dashboard' | 'month' | 'savings' | 'recurring';
+export type View = 'dashboard' | 'month' | 'savings' | 'recurring' | 'loans';
 export type SyncState = 'off' | 'ready' | 'syncing' | 'synced' | 'error';

@@ -2,6 +2,7 @@ import type {
   PlannerState,
   Month,
   Recurring,
+  Loan,
   Goal,
   MonthKey,
   Currency,
@@ -26,6 +27,48 @@ export function toKZT(state: PlannerState, amount: number, cur: Currency | strin
 
 export function recurringForMonth(state: PlannerState, k: MonthKey): Recurring[] {
   return state.recurring.filter((r) => r.start <= k && (!r.end || k <= r.end));
+}
+
+/** Loans whose repayment window covers month k (start ≤ k ≤ end). */
+export function loansForMonth(state: PlannerState, k: MonthKey): Loan[] {
+  return (state.loans || []).filter((l) => l.start <= k && k <= l.end);
+}
+
+/** What a loan's payment counts as spent in month k: the full payment once k is current/past, else 0. */
+export function loanEffectiveActual(k: MonthKey, l: Loan): number {
+  return k <= nowKey() ? Number(l.payment) || 0 : 0;
+}
+
+export interface LoanStats {
+  term: number; // total number of monthly payments (start..end inclusive)
+  paid: number; // payments already due (through the current month), capped at term
+  remainingMonths: number;
+  totalToPay: number; // in the loan's own currency
+  paidToDate: number;
+  remaining: number;
+  progress: number; // 0..1
+  active: boolean;
+  done: boolean;
+}
+
+/** Derived figures for a loan, all in the loan's own currency. */
+export function loanStats(loan: Loan): LoanStats {
+  const now = nowKey();
+  const term = monthsBetween(loan.start, loan.end);
+  const paid = now < loan.start ? 0 : Math.min(term, monthsBetween(loan.start, now < loan.end ? now : loan.end));
+  const remainingMonths = Math.max(0, term - paid);
+  const payment = Number(loan.payment) || 0;
+  return {
+    term,
+    paid,
+    remainingMonths,
+    totalToPay: term * payment,
+    paidToDate: paid * payment,
+    remaining: remainingMonths * payment,
+    progress: term > 0 ? paid / term : 0,
+    active: now >= loan.start && now <= loan.end,
+    done: now > loan.end,
+  };
 }
 
 /**
@@ -101,6 +144,10 @@ export function monthTotals(state: PlannerState, k: MonthKey): MonthTotals {
       actual += toKZT(state, e.actual, e.cur);
     });
   }
+  loansForMonth(state, k).forEach((l) => {
+    planned += toKZT(state, l.payment, l.cur);
+    actual += toKZT(state, loanEffectiveActual(k, l), l.cur);
+  });
   const saved = savedInMonth(state, k);
   planned += saved;
   actual += saved;
@@ -175,6 +222,9 @@ export function monthCategoryBreakdown(
     m.expenses.forEach((e) => {
       add(e.category, toKZT(state, mode === 'planned' ? e.planned : e.actual, e.cur));
     });
+  loansForMonth(state, k).forEach((l) => {
+    add('Debts & loans', toKZT(state, mode === 'planned' ? l.payment : loanEffectiveActual(k, l), l.cur));
+  });
   const sv = savedInMonth(state, k);
   if (sv > 0) add('Savings', sv);
   const arr = Object.keys(map).map((n) => ({ name: n, val: map[n] }));

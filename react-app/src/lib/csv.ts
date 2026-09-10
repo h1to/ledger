@@ -1,7 +1,7 @@
 import type { PlannerState } from '../types';
 import { mk } from './dates';
 import { labelFull } from '../i18n';
-import { recurringForMonth, recEffectiveActual, savedInMonth, toKZT } from './money';
+import { recurringForMonth, recEffectiveActual, savedInMonth, loansForMonth, loanEffectiveActual, toKZT } from './money';
 
 /** Build the CSV export string. Returns null if there is nothing to export. */
 export function buildCSV(state: PlannerState): string | null {
@@ -12,7 +12,7 @@ export function buildCSV(state: PlannerState): string | null {
   const y = state.year;
   for (let m = 1; m <= 12; m++) {
     const k0 = mk(y, m);
-    if (recurringForMonth(state, k0).length || savedInMonth(state, k0) > 0) allKeys[k0] = 1;
+    if (recurringForMonth(state, k0).length || loansForMonth(state, k0).length || savedInMonth(state, k0) > 0) allKeys[k0] = 1;
   }
   state.goals.forEach((g) => {
     Object.keys(g.contribs).forEach((k) => {
@@ -45,6 +45,10 @@ export function buildCSV(state: PlannerState): string | null {
       });
       if (mo.closed) rows.push([labelFull(k), 'Closed', 'Leftover', 'Banked', base, '', mo.leftover || 0, Number(mo.leftover || 0).toFixed(2), 'banked to net worth']);
     }
+    loansForMonth(state, k).forEach((l) => {
+      const eff = loanEffectiveActual(k, l);
+      rows.push([labelFull(k), 'Loan', l.name, 'Debts & loans', l.cur, l.payment, eff, toKZT(state, eff, l.cur).toFixed(2), 'loan payment']);
+    });
     state.goals.forEach((g) => {
       if (g.contribs[k]) rows.push([labelFull(k), 'Savings', g.name, 'Savings', base, '', g.contribs[k], Number(g.contribs[k]).toFixed(2), 'counted as expense']);
     });
