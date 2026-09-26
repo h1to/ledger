@@ -38,14 +38,21 @@ export function LoanModal({ id }: { id: string | null }) {
         const over2 = overpayment > 0 ? overpayment : null;
         const bank2 = bank.trim() || null;
         const debt2 = debt > 0 ? debt : null;
+        // When a payment is set on a debt with no real repayment window yet (imported loans use a
+        // placeholder end == start), derive the window from remaining debt ÷ payment so it counts
+        // across the right number of months. An explicitly-set future end is respected.
+        let end2 = end;
+        if (payment > 0 && debt2 && debt2 > 0 && end <= start) {
+          end2 = shiftKey(start, Math.max(1, Math.ceil(debt2 / payment)) - 1);
+        }
         commit((s) => {
           if (existing) {
             const l = s.loans.find((x) => x.id === existing.id)!;
             l.name = name.trim(); l.bank = bank2; l.debt = debt2; l.payment = payment; l.cur = cur;
-            l.start = start; l.end = end; l.rate = rate2; l.overpayment = over2;
+            l.start = start; l.end = end2; l.rate = rate2; l.overpayment = over2;
           } else {
             s.loans.push({
-              id: uid(), name: name.trim(), bank: bank2, debt: debt2, payment, cur, start, end,
+              id: uid(), name: name.trim(), bank: bank2, debt: debt2, payment, cur, start, end: end2,
               rate: rate2, overpayment: over2, contract: null, kind: null, source: 'manual',
             });
           }

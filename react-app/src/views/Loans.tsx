@@ -1,12 +1,10 @@
 import { useStore } from '../store/useStore';
 import { InfoTip } from '../components/InfoTip';
 import { EditIcon, TrashIcon } from '../components/icons';
-import { MoneyInput } from '../components/MoneyInput';
 import { tt, labelShortKey } from '../i18n';
 import { fmt, fmtCur } from '../lib/format';
 import { toKZT, loanStats } from '../lib/money';
 import { debtSummary, loanCurrentDebt, loanPayoffMonths, bankKey, payoffDateKey } from '../lib/debt';
-import { nowKey, shiftKey } from '../lib/dates';
 import type { Loan } from '../types';
 
 /** Human "N mo" / "≈ N yr M mo" for a month count. */
@@ -117,26 +115,9 @@ function LoanCard({ l }: { l: Loan }) {
               {payoff != null && payoff > 0 && <span>· {monthsLabel(payoff)} {tt('left')}</span>}
             </>
           ) : (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ color: 'var(--amber)' }}>{tt('Monthly payment')}:</span>
-              <MoneyInput
-                className="cell-input mono"
-                value={0}
-                placeholder={tt('add')}
-                onCommit={(v) => {
-                  if (v <= 0) return;
-                  commit((s) => {
-                    const loan = s.loans.find((x) => x.id === l.id);
-                    if (!loan) return;
-                    loan.payment = v;
-                    // derive a repayment window from the remaining debt so it counts in months
-                    const months = loanCurrentDebt(loan) > 0 ? Math.max(1, Math.ceil(loanCurrentDebt(loan) / v)) : 1;
-                    loan.start = nowKey();
-                    loan.end = shiftKey(nowKey(), months - 1);
-                  });
-                }}
-              />
-            </span>
+            <button className="btn btn-secondary btn-small" onClick={() => openModal({ type: 'loan', id: l.id })}>
+              + {tt('Add monthly payment')}
+            </button>
           )}
         </div>
       </div>
