@@ -1,0 +1,25 @@
+# Render blueprint for the Ledger API (Java 21, Docker).
+# Secrets (JWT_SECRET, ANTHROPIC_API_KEY, the datasource creds) are set in the Render dashboard,
+# not committed here. sync:false marks values you must fill in per environment.
+services:
+  - type: web
+    name: ledger-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        sync: false # e.g. jdbc:postgresql://<host>:5432/postgres?sslmode=require
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true # Render generates a strong secret
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGIN
+        sync: false # e.g. https://your-frontend.example.com
