@@ -126,6 +126,7 @@ function meaningfulLocalData(state: PlannerState): boolean {
   return (
     Object.keys(state.months).length > 0 ||
     state.recurring.length > 0 ||
+    (state.loans?.length ?? 0) > 0 ||
     state.goals.length > 0 ||
     state.assets.length > 0
   );
@@ -137,6 +138,21 @@ export function schedulePush(): void {
   if (!sb || !s().user) return;
   if (pushTimer) clearTimeout(pushTimer);
   pushTimer = setTimeout(pushRemote, 1500);
+}
+
+/**
+ * Best-effort flush of a debounced/queued push — fired when the tab is hidden or closing so an
+ * edit made within the 1.5s debounce window isn't lost. There is no local cache to fall back on
+ * (the DB is the single source of truth by design), so this narrows the abrupt-close data-loss gap.
+ */
+export function flushPendingPush(): void {
+  if (pushTimer) {
+    clearTimeout(pushTimer);
+    pushTimer = null;
+    pushRemote();
+  } else if (pendingPush) {
+    pushRemote();
+  }
 }
 
 export function pushRemote(): void {
@@ -324,9 +340,19 @@ function attachAuthListener(): void {
   });
 }
 
+let flushListenersSet = false;
+
 /** Boot: wire the store->push hook, init supabase, restore any session. */
 export function boot(): void {
   useStore.getState().setPushHook(schedulePush);
+  if (!flushListenersSet && typeof window !== 'undefined') {
+    flushListenersSet = true;
+    // flush a pending push when the tab is backgrounded (mobile) or closed
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') flushPendingPush();
+    });
+    window.addEventListener('pagehide', flushPendingPush);
+  }
   loadSyncCfg();
   if (!initSupabase()) {
     s().setGate('setup', '');

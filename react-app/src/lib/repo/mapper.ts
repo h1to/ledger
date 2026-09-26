@@ -79,11 +79,14 @@ export function rowSetToState(rs: RowSet): PlannerState {
     if (!state.months[mk]) state.months[mk] = { incomes: [], expenses: [], recActuals: {} };
     return state.months[mk];
   };
-  for (const id of Object.keys(rs.incomes)) {
+  // Sort id-keyed collections so the rebuilt arrays are in a stable, deterministic order —
+  // the DB returns rows unordered, and stateForCompare() hashes array order, so without this
+  // an unchanged cloud copy can look "newer" on every open and churn the sync.
+  for (const id of Object.keys(rs.incomes).sort()) {
     const r = rs.incomes[id];
     ensure(r.monthKey).incomes.push({ id, name: r.name, amount: r.amount, cur: r.cur });
   }
-  for (const id of Object.keys(rs.expenses)) {
+  for (const id of Object.keys(rs.expenses).sort()) {
     const r = rs.expenses[id];
     ensure(r.monthKey).expenses.push({ id, name: r.name, category: r.category, planned: r.planned, actual: r.actual, cur: r.cur });
   }
@@ -92,12 +95,12 @@ export function rowSetToState(rs: RowSet): PlannerState {
     ensure(r.monthKey).recActuals[r.recurringId] = r.amount;
   }
 
-  state.recurring = Object.keys(rs.recurring).map((id) => {
+  state.recurring = Object.keys(rs.recurring).sort().map((id) => {
     const r = rs.recurring[id];
     return { id, name: r.name, type: r.type, category: r.category, amount: r.amount, cur: r.cur, start: r.startKey, end: r.endKey };
   });
 
-  state.loans = Object.keys(rs.loans).map((id) => {
+  state.loans = Object.keys(rs.loans).sort().map((id) => {
     const r = rs.loans[id];
     return {
       id, name: r.name, payment: r.payment, cur: r.cur, start: r.startKey, end: r.endKey,
@@ -107,7 +110,7 @@ export function rowSetToState(rs: RowSet): PlannerState {
   });
 
   const goalById: Record<string, PlannerState['goals'][number]> = {};
-  state.goals = Object.keys(rs.goals).map((id) => {
+  state.goals = Object.keys(rs.goals).sort().map((id) => {
     const r = rs.goals[id];
     const g = { id, name: r.name, target: r.target, deadline: r.deadlineKey, contribs: {} as Record<string, number> };
     goalById[id] = g;
@@ -119,7 +122,7 @@ export function rowSetToState(rs: RowSet): PlannerState {
     if (g) g.contribs[r.monthKey] = r.amount;
   }
 
-  state.assets = Object.keys(rs.assets).map((id) => {
+  state.assets = Object.keys(rs.assets).sort().map((id) => {
     const r = rs.assets[id];
     return { id, name: r.name, kind: r.kind, value: r.value, cur: r.cur, liquid: r.liquid };
   });

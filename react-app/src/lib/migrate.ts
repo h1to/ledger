@@ -38,7 +38,8 @@ export function normalizeState(raw: unknown): PlannerState {
     goals: (p.goals as PlannerState['goals']) || [],
     assets: (p.assets as PlannerState['assets']) || [],
     tourDone: !!p.tourDone,
-    rates: (p.rates as PlannerState['rates']) || {},
+    // clone: the base-currency delete + default fill below must not mutate the caller's object
+    rates: { ...(p.rates as PlannerState['rates']) },
     ratesUpdated: p.ratesUpdated || null,
     lastModified: p.lastModified || null,
   };

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { Modal } from '../Modal';
 import { CurSelect } from '../FormFields';
+import { CUR_SYMBOLS } from '../../constants';
 import { MoneyInput } from '../MoneyInput';
 import { tt } from '../../i18n';
 import { uid } from '../../lib/format';
@@ -58,6 +59,8 @@ export function ImportDebtsModal() {
 
   const setRow = (i: number, patch: Partial<Row>) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   const totalDebt = rows.reduce((s, r) => s + r.debt, 0);
+  // only label the total with a currency symbol when every row shares one; else it's a mixed sum
+  const uniformCur = rows.length > 0 && rows.every((r) => r.cur === rows[0].cur) ? rows[0].cur : null;
 
   function confirmImport() {
     const valid = rows.filter((r) => r.debt > 0 || r.payment > 0);
@@ -132,7 +135,7 @@ export function ImportDebtsModal() {
             </div>
           </div>
           <div className="modal-note" style={{ textAlign: 'right' }}>
-            {tt('Total')}: <b className="mono">{totalDebt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₸</b> · {rows.length} {tt('loans')}
+            {tt('Total')}: <b className="mono">{totalDebt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{uniformCur ? ' ' + CUR_SYMBOLS[uniformCur] : ''}</b> · {rows.length} {tt('loans')}
           </div>
           <div className="modal-actions" style={{ justifyContent: 'space-between' }}>
             <button className="btn btn-secondary btn-small" onClick={() => { setPhase('pick'); setRows([]); }}>{tt('Back')}</button>

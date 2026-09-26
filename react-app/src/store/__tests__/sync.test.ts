@@ -86,6 +86,21 @@ describe('sync reconciliation (driver-agnostic; startup-race fix)', () => {
     await tick();
     expect(cloudMonths()).toEqual(['2026-03']);
   });
+
+  it('treats loans as meaningful data — freshly imported loans are not clobbered by an older cloud copy', async () => {
+    cloudState = withMonths({}, 1000); // older, no loans
+    const local: PlannerState = { ...emptyState(), lastModified: 3000, loans: [
+      { id: 'l1', name: 'Halyk · X', bank: 'Halyk', debt: 300000, contract: null, kind: null, source: 'import', payment: 0, cur: 'KZT', start: '2026-09', end: '2026-09', rate: null, overpayment: null },
+    ] };
+    useStore.setState({ state: local });
+
+    await new Promise<void>((resolve) => pullRemote(resolve));
+    await tick();
+
+    expect(useStore.getState().state.loans).toHaveLength(1); // kept, not overwritten by remote
+    expect(saveCount).toBe(1); // local (newer, meaningful) pushed to cloud
+    expect(cloudState?.loans).toHaveLength(1);
+  });
 });
 
 describe('store primitives', () => {
