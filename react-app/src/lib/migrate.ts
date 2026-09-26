@@ -81,6 +81,7 @@ export function normalizeState(raw: unknown): PlannerState {
     if (l.contract === undefined) l.contract = null;
     if (l.kind === undefined) l.kind = null;
     if (!l.source) l.source = 'manual';
+    if (l.end < l.start) l.end = l.start; // heal any rows saved with an inverted window
   });
 
   state.goals.forEach((g) => {

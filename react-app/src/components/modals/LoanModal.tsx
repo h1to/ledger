@@ -14,6 +14,7 @@ export function LoanModal({ id }: { id: string | null }) {
   const toast = useStore((s) => s.toast);
   const closeModal = useStore((s) => s.closeModal);
   const existing = id ? state.loans.find((l) => l.id === id) : null;
+  const imported = existing?.source === 'import';
 
   const [name, setName] = useState(existing?.name ?? '');
   const [bank, setBank] = useState(existing?.bank ?? '');
@@ -31,28 +32,34 @@ export function LoanModal({ id }: { id: string | null }) {
       onClose={closeModal}
       onSubmit={() => {
         if (!name.trim()) { toast(tt('Give it a name')); return false; }
-        if (payment > 0 && end < start) { toast(tt('End date is before start date')); return false; }
         if (payment <= 0 && debt <= 0) { toast(tt('Enter a monthly payment or a remaining debt')); return false; }
+        // Manual loans validate their own start/end; imported debts have no dates in the
+        // certificate, so their window is derived (below) and never validated.
+        if (!imported && payment > 0 && end < start) { toast(tt('End date is before start date')); return false; }
         const rateNum = rate.trim() ? parseFloat(rate.replace(',', '.')) : NaN;
         const rate2 = isFinite(rateNum) && rateNum > 0 ? rateNum : null;
         const over2 = overpayment > 0 ? overpayment : null;
         const bank2 = bank.trim() || null;
         const debt2 = debt > 0 ? debt : null;
-        // When a payment is set on a debt with no real repayment window yet (imported loans use a
-        // placeholder end == start), derive the window from remaining debt ÷ payment so it counts
-        // across the right number of months. An explicitly-set future end is respected.
+        // For an imported debt, always rebuild the window from now: with a payment, span
+        // remaining debt ÷ payment months; without one, keep a single-month placeholder.
+        // For a manual loan, keep the user's dates but still derive when the window is empty.
+        let start2 = start;
         let end2 = end;
-        if (payment > 0 && debt2 && debt2 > 0 && end <= start) {
+        if (imported) {
+          start2 = nowKey();
+          end2 = payment > 0 && debt2 && debt2 > 0 ? shiftKey(start2, Math.max(1, Math.ceil(debt2 / payment)) - 1) : start2;
+        } else if (payment > 0 && debt2 && debt2 > 0 && end <= start) {
           end2 = shiftKey(start, Math.max(1, Math.ceil(debt2 / payment)) - 1);
         }
         commit((s) => {
           if (existing) {
             const l = s.loans.find((x) => x.id === existing.id)!;
             l.name = name.trim(); l.bank = bank2; l.debt = debt2; l.payment = payment; l.cur = cur;
-            l.start = start; l.end = end2; l.rate = rate2; l.overpayment = over2;
+            l.start = start2; l.end = end2; l.rate = rate2; l.overpayment = over2;
           } else {
             s.loans.push({
-              id: uid(), name: name.trim(), bank: bank2, debt: debt2, payment, cur, start, end: end2,
+              id: uid(), name: name.trim(), bank: bank2, debt: debt2, payment, cur, start: start2, end: end2,
               rate: rate2, overpayment: over2, contract: null, kind: null, source: 'manual',
             });
           }
@@ -70,8 +77,14 @@ export function LoanModal({ id }: { id: string | null }) {
       </div>
       <div className="field"><label>{tt('Monthly payment')}</label>
         <MoneyInput className="mono" value={payment} onCommit={setPayment} blankZero /></div>
-      <MonthYearSelect prefix="start" value={start} onChange={setStart} yearsAhead={10} />
-      <MonthYearSelect prefix="end" value={end} onChange={setEnd} yearsAhead={40} />
+      {imported ? (
+        <div className="modal-note">{tt('The repayment period is estimated from the remaining debt and the monthly payment (the certificate has no dates).')}</div>
+      ) : (
+        <>
+          <MonthYearSelect prefix="start" value={start} onChange={setStart} yearsAhead={10} />
+          <MonthYearSelect prefix="end" value={end} onChange={setEnd} yearsAhead={40} />
+        </>
+      )}
       <div className="field-row">
         <div className="field"><label>{tt('Interest rate % (optional)')}</label>
           <input className="mono" inputMode="decimal" value={rate} placeholder="—" onChange={(e) => setRate(e.target.value)} /></div>

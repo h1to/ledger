@@ -304,6 +304,8 @@ export const RU: Record<string, string> = {
   'Time to clear all': 'Срок погашения всего',
   'without a payment yet': 'без платежа',
   'Add monthly payment': 'Указать ежемесячный платёж',
+  'The repayment period is estimated from the remaining debt and the monthly payment (the certificate has no dates).':
+    'Срок погашения оценивается по остатку долга и ежемесячному платежу (в справке нет дат).',
   'Import from bank PDF': 'Импорт из PDF банка',
   'No loans yet. Import a bank debt certificate (PDF), or add one manually — the monthly payment is counted in every month automatically.':
     'Кредитов пока нет. Импортируйте справку о задолженности (PDF) или добавьте вручную — ежемесячный платёж учитывается каждый месяц автоматически.',
