@@ -52,6 +52,11 @@ export interface LoanRow {
   endKey: string;
   rate: number | null;
   overpayment: number | null;
+  bank: string | null;
+  debt: number | null;
+  contract: string | null;
+  kind: string | null;
+  source: 'manual' | 'import';
 }
 export interface GoalRow {
   name: string;

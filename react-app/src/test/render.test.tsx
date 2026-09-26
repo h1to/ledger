@@ -11,6 +11,7 @@ import { Gate } from '../views/Gate';
 import { AssetModal } from '../components/modals/AssetModal';
 import { RecurringModal } from '../components/modals/RecurringModal';
 import { LoanModal } from '../components/modals/LoanModal';
+import { ImportDebtsModal } from '../components/modals/ImportDebtsModal';
 import { GoalDetail } from '../components/modals/GoalDetail';
 import { SettingsModal } from '../components/modals/SettingsModal';
 import type { Lang } from '../types';
@@ -103,6 +104,8 @@ describe('render sweep — every screen in both languages must not throw', () =>
       expect(() => render(<RecurringModal id="r1" />)).not.toThrow();
       cleanup();
       expect(() => render(<LoanModal id="l1" />)).not.toThrow();
+      cleanup();
+      expect(() => render(<ImportDebtsModal />)).not.toThrow();
       cleanup();
       expect(() => render(<GoalDetail goalId="g1" />)).not.toThrow();
       cleanup();

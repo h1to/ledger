@@ -4,6 +4,7 @@ import { IncomeModal } from './IncomeModal';
 import { ExpenseModal } from './ExpenseModal';
 import { RecurringModal } from './RecurringModal';
 import { LoanModal } from './LoanModal';
+import { ImportDebtsModal } from './ImportDebtsModal';
 import { GoalModal } from './GoalModal';
 import { ContribModal } from './ContribModal';
 import { GoalDetail } from './GoalDetail';
@@ -28,6 +29,8 @@ export function ModalHost() {
       return <RecurringModal id={modal.id} />;
     case 'loan':
       return <LoanModal id={modal.id} />;
+    case 'importDebts':
+      return <ImportDebtsModal />;
     case 'goal':
       return <GoalModal id={modal.id} />;
     case 'contrib':

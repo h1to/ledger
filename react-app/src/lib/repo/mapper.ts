@@ -37,7 +37,12 @@ export function stateToRowSet(state: PlannerState): RowSet {
     rs.recurring[r.id] = { name: r.name, type: r.type, category: r.category, amount: r.amount, cur: r.cur, startKey: r.start, endKey: r.end ?? null };
   });
   state.loans.forEach((l) => {
-    rs.loans[l.id] = { name: l.name, payment: l.payment, cur: l.cur, startKey: l.start, endKey: l.end, rate: l.rate ?? null, overpayment: l.overpayment ?? null };
+    rs.loans[l.id] = {
+      name: l.name, payment: l.payment, cur: l.cur, startKey: l.start, endKey: l.end,
+      rate: l.rate ?? null, overpayment: l.overpayment ?? null,
+      bank: l.bank ?? null, debt: l.debt ?? null, contract: l.contract ?? null,
+      kind: l.kind ?? null, source: l.source ?? 'manual',
+    };
   });
   state.goals.forEach((g) => {
     rs.goals[g.id] = { name: g.name, target: g.target, deadlineKey: g.deadline ?? null };
@@ -94,7 +99,11 @@ export function rowSetToState(rs: RowSet): PlannerState {
 
   state.loans = Object.keys(rs.loans).map((id) => {
     const r = rs.loans[id];
-    return { id, name: r.name, payment: r.payment, cur: r.cur, start: r.startKey, end: r.endKey, rate: r.rate, overpayment: r.overpayment };
+    return {
+      id, name: r.name, payment: r.payment, cur: r.cur, start: r.startKey, end: r.endKey,
+      rate: r.rate, overpayment: r.overpayment, bank: r.bank, debt: r.debt,
+      contract: r.contract, kind: r.kind, source: r.source,
+    };
   });
 
   const goalById: Record<string, PlannerState['goals'][number]> = {};

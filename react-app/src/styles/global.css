@@ -87,6 +87,7 @@ h1{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.1;}
 .grid{display:grid;gap:12px;}
 .grid>*{min-width:0;}
 .stats-grid{grid-template-columns:repeat(4,minmax(0,1fr));margin-top:22px;}
+.debt-stats{grid-template-columns:repeat(3,minmax(0,1fr));}
 .months-grid{grid-template-columns:repeat(4,minmax(0,1fr));}
 
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-card);padding:18px 20px;}
@@ -361,6 +362,7 @@ tfoot td{border-top:1px solid var(--border);border-bottom:none;font-weight:700;p
 }
 @media(max-width:400px){
   .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;}
+  .debt-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
   .card{padding:15px 16px;}
   .card-value{font-size:18px;}
 }

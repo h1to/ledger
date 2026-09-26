@@ -22,6 +22,7 @@ export type ModalState =
   | { type: 'expense'; k: MonthKey }
   | { type: 'recurring'; id: string | null }
   | { type: 'loan'; id: string | null }
+  | { type: 'importDebts' }
   | { type: 'goal'; id: string | null }
   | { type: 'contrib'; goalId: string }
   | { type: 'goalDetail'; goalId: string }

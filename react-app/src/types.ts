@@ -45,9 +45,14 @@ export interface Recurring {
 }
 
 /**
- * A loan: a fixed monthly payment from `start` to `end` (inclusive). Its monthly payment is
- * auto-counted in each active month's expenses (category "Debts & loans"). `rate` (annual %)
- * and `overpayment` (total interest over the loan's life, in `cur`) are optional info figures.
+ * A loan / debt. A fixed monthly `payment` from `start` to `end` (inclusive) is auto-counted
+ * in each active month's expenses (category "Debts & loans"). `rate` (annual %) and
+ * `overpayment` (total interest over the loan's life, in `cur`) are optional info figures.
+ *
+ * Loans imported from a bank debt certificate carry `bank`, the remaining `debt` owed right
+ * now, the `contract` number and a type `kind` label; their `payment` starts at 0 (unknown —
+ * the certificates don't include it) until the user fills it in. `source` distinguishes
+ * imported rows (replaced on re-import) from manually-added ones.
  */
 export interface Loan {
   id: string;
@@ -58,6 +63,11 @@ export interface Loan {
   end: MonthKey;
   rate: number | null;
   overpayment: number | null;
+  bank?: string | null;
+  debt?: number | null;
+  contract?: string | null;
+  kind?: string | null;
+  source?: 'manual' | 'import';
 }
 
 export interface Goal {

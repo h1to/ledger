@@ -76,6 +76,11 @@ export function normalizeState(raw: unknown): PlannerState {
     if (!l.end) l.end = l.start;
     if (l.rate === undefined) l.rate = null;
     if (l.overpayment === undefined) l.overpayment = null;
+    if (l.bank === undefined) l.bank = null;
+    if (l.debt === undefined) l.debt = null;
+    if (l.contract === undefined) l.contract = null;
+    if (l.kind === undefined) l.kind = null;
+    if (!l.source) l.source = 'manual';
   });
 
   state.goals.forEach((g) => {

@@ -90,7 +90,12 @@ create table if not exists public.loans (
   start_key   text not null,
   end_key     text not null,
   rate        numeric,   -- annual interest %, optional
-  overpayment numeric    -- total interest over the loan's life, optional
+  overpayment numeric,   -- total interest over the loan's life, optional
+  bank        text,      -- issuing bank (imported debts); null for manual loans
+  debt        numeric,   -- remaining debt owed now (imported from a bank certificate)
+  contract    text,      -- contract number
+  kind        text,      -- loan type label
+  source      text not null default 'manual'  -- 'manual' | 'import' (import rows replaced on re-import)
 );
 create index if not exists loans_user on public.loans (user_id);
 

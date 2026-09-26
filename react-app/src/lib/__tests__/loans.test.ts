@@ -11,7 +11,7 @@ beforeAll(() => {
 });
 afterAll(() => vi.useRealTimers());
 
-const loan: Loan = { id: 'l1', name: 'Mortgage', payment: 100000, cur: 'KZT', start: '2026-01', end: '2026-12', rate: 12, overpayment: 200000 };
+const loan: Loan = { id: 'l1', name: 'Mortgage', payment: 100000, cur: 'KZT', start: '2026-01', end: '2026-12', rate: 12, overpayment: 200000, bank: null, debt: null, contract: null, kind: null, source: 'manual' };
 
 describe('loans in monthly expenses', () => {
   it('adds the payment to planned every active month, and to actual only once due', () => {

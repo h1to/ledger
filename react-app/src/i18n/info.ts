@@ -33,6 +33,9 @@ export const INFO: Record<string, string> = {
   goals_info: 'Set a target and optional deadline — the app computes the monthly amount needed. Tap a goal card to see and edit every contribution.',
   rec_info: 'Set a payment or income once — it is included automatically in every month from its start date to its end date (or forever).',
   loans_info: "Loans you're repaying. Each loan's monthly payment is automatically counted as an expense in every month from its start date to its end date. Interest rate and total overpayment are optional notes.",
+  debt_total: 'The total you still owe right now across all loans — the sum of each loan’s remaining debt, converted to your base currency.',
+  debt_payoff: 'How long until every loan is cleared, assuming you keep paying each monthly payment. Loans without a payment set yet are not counted.',
+  debt_by_bank: 'Your remaining debt split by bank, with each bank’s monthly repayment and payoff time where payments are known.',
 };
 
 export const INFO_RU: Record<string, string> = {
@@ -69,4 +72,7 @@ export const INFO_RU: Record<string, string> = {
   goals_info: 'Задайте сумму и срок — приложение посчитает нужный ежемесячный взнос и будет следить за темпом. Нажмите на цель, чтобы посмотреть и изменить все взносы.',
   rec_info: 'Задайте платёж или доход один раз — он автоматически попадёт в каждый месяц от даты начала до даты окончания (или бессрочно).',
   loans_info: 'Кредиты, которые вы выплачиваете. Ежемесячный платёж по каждому кредиту автоматически учитывается как расход в каждом месяце от даты начала до даты окончания. Ставка и общая переплата — необязательные заметки.',
+  debt_total: 'Сколько вы должны прямо сейчас по всем кредитам — сумма остатков долга, приведённая к базовой валюте.',
+  debt_payoff: 'За какой срок будут погашены все кредиты, если платить каждый ежемесячный платёж. Кредиты без указанного платежа не учитываются.',
+  debt_by_bank: 'Остаток долга по банкам, с ежемесячным платежом и сроком погашения каждого банка, где платежи известны.',
 };

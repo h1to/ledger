@@ -22,3 +22,7 @@ Thumbs.db
 **/.env
 **/.env.*
 !**/.env.example
+
+# Personal bank statements / debt certificates — never commit (contain IIN & financial data)
+*.pdf
+**/*.pdf

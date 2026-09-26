@@ -290,6 +290,41 @@ export const RU: Record<string, string> = {
   'Total overpayment (optional)': 'Переплата всего (необязательно)',
   'The monthly payment is automatically counted as an expense in every month from start to end.':
     'Ежемесячный платёж автоматически учитывается как расход в каждом месяце от начала до конца срока.',
+  // ---- debt import & dashboard ----
+  yr: 'г',
+  add: 'указать',
+  Import: 'Импортировать',
+  Imported: 'Импортировано',
+  Loan: 'Кредит',
+  Monthly: 'Платёж',
+  Banks: 'Банки',
+  'Total debt': 'Общий долг',
+  'Remaining debt': 'Остаток долга',
+  'Debt by bank': 'Долг по банкам',
+  'Time to clear all': 'Срок погашения всего',
+  'without a payment yet': 'без платежа',
+  'Import from bank PDF': 'Импорт из PDF банка',
+  'No loans yet. Import a bank debt certificate (PDF), or add one manually — the monthly payment is counted in every month automatically.':
+    'Кредитов пока нет. Импортируйте справку о задолженности (PDF) или добавьте вручную — ежемесячный платёж учитывается каждый месяц автоматически.',
+  'Bank (optional)': 'Банк (необязательно)',
+  'e.g. Halyk': 'напр. Halyk',
+  'Remaining debt (optional)': 'Остаток долга (необязательно)',
+  'Enter a monthly payment or a remaining debt': 'Укажите ежемесячный платёж или остаток долга',
+  'When a monthly payment is set, it is automatically counted as an expense in every month from start to end.':
+    'Когда задан ежемесячный платёж, он автоматически учитывается как расход в каждом месяце от начала до конца срока.',
+  'Choose a PDF': 'Выберите PDF',
+  'Reading…': 'Читаем…',
+  'Review debts': 'Проверьте задолженности',
+  'Nothing to import': 'Нечего импортировать',
+  'Upload a debt certificate (справка о задолженности) from Halyk, Kaspi or Alatau City Bank. It is read on your device — the file is never uploaded. We read the remaining debt per loan; you add the monthly payment afterwards.':
+    'Загрузите справку о задолженности из Halyk, Kaspi или Alatau City Bank. Файл обрабатывается на вашем устройстве и никуда не загружается. Мы считываем остаток долга по каждому кредиту; ежемесячный платёж вы добавите потом.',
+  "Couldn't recognize the bank in this PDF. Supported: Halyk, Kaspi, Alatau City Bank.":
+    'Не удалось определить банк в этом PDF. Поддерживаются: Halyk, Kaspi, Alatau City Bank.',
+  'No debts found in this PDF.': 'В этом PDF не найдено задолженностей.',
+  "Couldn't read this PDF. Make sure it's the debt certificate file.":
+    'Не удалось прочитать PDF. Убедитесь, что это файл справки о задолженности.',
+  'Check the amounts, then set a monthly payment where you know it (you can also do this later on each card). Importing replaces this bank’s previously imported loans.':
+    'Проверьте суммы и укажите ежемесячный платёж, где знаете (это можно сделать позже на карточке). Импорт заменит ранее импортированные кредиты этого банка.',
   'Signed in as': 'Вы вошли как',
   Status: 'Статус',
   'Leftover (KZT)': 'Остаток (KZT)',
