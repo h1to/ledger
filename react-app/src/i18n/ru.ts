@@ -303,6 +303,7 @@ export const RU: Record<string, string> = {
   'Debt by bank': 'Долг по банкам',
   'Time to clear all': 'Срок погашения всего',
   'without a payment yet': 'без платежа',
+  loan: 'кредит',
   'Add monthly payment': 'Указать ежемесячный платёж',
   'The repayment period is estimated from the remaining debt and the monthly payment (the certificate has no dates).':
     'Срок погашения оценивается по остатку долга и ежемесячному платежу (в справке нет дат).',

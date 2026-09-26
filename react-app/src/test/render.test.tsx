@@ -125,6 +125,19 @@ describe('render sweep — every screen in both languages must not throw', () =>
     expect(screen.getByText('Confirm password')).toBeInTheDocument();
   });
 
+  it('shows a per-bank loan payment row in the month expenses', () => {
+    seed();
+    // an active imported loan with a monthly payment, tagged to a bank
+    useStore.setState((st) => ({
+      state: { ...st.state, loans: [{ id: 'lb', name: 'Halyk · X', bank: 'Halyk', debt: 300000, contract: null, kind: null, source: 'import', payment: 50000, cur: 'KZT', start: '2026-08', end: '2026-12', rate: null, overpayment: null }] },
+    }));
+    useStore.getState().setLang('en');
+    useStore.setState({ view: 'month', openMonthKey: '2026-08' });
+    render(<MonthEditor />);
+    expect(screen.getByText('Halyk')).toBeInTheDocument(); // bank row label
+    expect(screen.getAllByText('loan').length).toBeGreaterThan(0); // loan tag
+  });
+
   it('dashboard shows the hero and net-worth cards', () => {
     seed();
     useStore.getState().setLang('en');
