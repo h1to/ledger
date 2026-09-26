@@ -139,5 +139,5 @@ export interface DisplayFree {
   state: DisplayFreeState;
 }
 
-export type View = 'dashboard' | 'month' | 'savings' | 'recurring' | 'loans';
+export type View = 'dashboard' | 'month' | 'savings' | 'recurring' | 'loans' | 'insights';
 export type SyncState = 'off' | 'ready' | 'syncing' | 'synced' | 'error';

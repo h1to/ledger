@@ -7,6 +7,7 @@ import { MonthEditor } from '../views/MonthEditor';
 import { Savings } from '../views/Savings';
 import { Recurring } from '../views/Recurring';
 import { Loans } from '../views/Loans';
+import { Insights } from '../views/Insights';
 import { Gate } from '../views/Gate';
 import { AssetModal } from '../components/modals/AssetModal';
 import { RecurringModal } from '../components/modals/RecurringModal';
@@ -87,6 +88,12 @@ describe('render sweep — every screen in both languages must not throw', () =>
       seed();
       useStore.getState().setLang(lang);
       expect(() => render(<Loans />)).not.toThrow();
+    });
+
+    it(`insights [${lang}]`, () => {
+      seed();
+      useStore.getState().setLang(lang);
+      expect(() => render(<Insights />)).not.toThrow();
     });
 
     it(`gate [${lang}]`, () => {

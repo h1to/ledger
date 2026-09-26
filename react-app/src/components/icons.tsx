@@ -13,7 +13,7 @@ function Svg({ sw = 2, className, children }: SvgProps) {
   );
 }
 
-export type NavIconKey = 'dashboard' | 'thismonth' | 'savings' | 'recurring' | 'loans' | 'more';
+export type NavIconKey = 'dashboard' | 'thismonth' | 'savings' | 'recurring' | 'loans' | 'insights' | 'more';
 
 export function NavIcon({ name, sw = 1.8 }: { name: NavIconKey; sw?: number }) {
   switch (name) {
@@ -27,6 +27,8 @@ export function NavIcon({ name, sw = 1.8 }: { name: NavIconKey; sw?: number }) {
       return <Svg sw={sw}><path d="M17 2l4 4-4 4" /><path d="M3 11v-1a4 4 0 014-4h14" /><path d="M7 22l-4-4 4-4" /><path d="M21 13v1a4 4 0 01-4 4H3" /></Svg>;
     case 'loans':
       return <Svg sw={sw}><path d="M3 21h18M5 21V10M9 21V10M15 21V10M19 21V10M12 3L3 8h18z" /></Svg>;
+    case 'insights':
+      return <Svg sw={sw}><path d="M4 19V5M20 19V11M12 19V8M4 19h16" /><path d="M6 8l4-4 4 3 5-5" /></Svg>;
     case 'more':
       return (
         <Svg sw={sw}>

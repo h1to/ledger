@@ -36,6 +36,9 @@ export const INFO: Record<string, string> = {
   debt_total: 'The total you still owe right now across all loans — the sum of each loan’s remaining debt, converted to your base currency.',
   debt_payoff: 'How long until every loan is cleared, assuming you keep paying each monthly payment. Loans without a payment set yet are not counted.',
   debt_by_bank: 'Your remaining debt split by bank, with each bank’s monthly repayment and payoff time where payments are known.',
+  ins_savings: 'Emergency-fund runway against a 3–6 month target, your savings rate against a 20% target, and how each goal is pacing toward its deadline.',
+  ins_budget: 'Fixed commitments as a share of income, categories that have run over plan lately, and this month’s net-worth change.',
+  ins_actions: 'A ranked, exact list of the highest-impact moves for your situation — computed from your data.',
 };
 
 export const INFO_RU: Record<string, string> = {
@@ -75,4 +78,7 @@ export const INFO_RU: Record<string, string> = {
   debt_total: 'Сколько вы должны прямо сейчас по всем кредитам — сумма остатков долга, приведённая к базовой валюте.',
   debt_payoff: 'За какой срок будут погашены все кредиты, если платить каждый ежемесячный платёж. Кредиты без указанного платежа не учитываются.',
   debt_by_bank: 'Остаток долга по банкам, с ежемесячным платежом и сроком погашения каждого банка, где платежи известны.',
+  ins_savings: 'Запас подушки безопасности относительно цели 3–6 месяцев, норма сбережений относительно 20% и то, как каждая цель успевает к сроку.',
+  ins_budget: 'Доля постоянных обязательств в доходе, категории, недавно превысившие план, и изменение капитала за месяц.',
+  ins_actions: 'Ранжированный точный список самых полезных шагов для вашей ситуации — рассчитан по вашим данным.',
 };
