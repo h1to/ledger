@@ -2,7 +2,6 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { useStore, type AuthUser } from './useStore';
 import type { PlannerState, Lang } from '../types';
 import {
-  STORAGE_KEY,
   SYNC_CFG_KEY,
   EMBEDDED_SUPABASE_URL,
   EMBEDDED_SUPABASE_KEY,
@@ -10,7 +9,7 @@ import {
   ratesUrl,
   WEB3FORMS_KEY,
 } from '../constants';
-import { normalizeState, emptyState } from '../lib/migrate';
+import { emptyState } from '../lib/migrate';
 import { stateForCompare } from '../lib/reconcile';
 import { tt } from '../i18n';
 import type { CloudDriver } from './cloud/driver';
@@ -89,39 +88,9 @@ function toUser(sessionUser: { id: string; email?: string } | null | undefined):
   return sessionUser ? { id: sessionUser.id, email: sessionUser.email } : null;
 }
 
-// ---- one-time migration off localStorage ----
-// The DB is now the single source of truth; the app keeps no local planner-data cache.
-// On first entry we adopt whatever the old local-first version left in localStorage — once —
-// so upgrading users don't lose unsynced edits, then delete those keys for good.
-
-function legacyKeyFor(user: AuthUser | null): string {
-  return user ? STORAGE_KEY + '::' + user.id : STORAGE_KEY;
-}
-
-function readLegacyLocal(user: AuthUser | null): PlannerState {
-  let raw: string | null = null;
-  try {
-    raw = localStorage.getItem(legacyKeyFor(user)) || (user ? localStorage.getItem(STORAGE_KEY) : null);
-  } catch {
-    /* ignore */
-  }
-  if (!raw) return emptyState();
-  try {
-    return normalizeState(JSON.parse(raw));
-  } catch {
-    return emptyState();
-  }
-}
-
-function clearLegacyLocal(user: AuthUser | null): void {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-    if (user) localStorage.removeItem(legacyKeyFor(user));
-  } catch {
-    /* ignore */
-  }
-}
-
+// The DB is the single source of truth; the app keeps no local planner-data cache and never reads
+// localStorage for state. `meaningfulLocalData` guards the reconciliation: on open the in-memory
+// state is empty, so it always yields to the cloud copy (see enterApp / pullRemote).
 function meaningfulLocalData(state: PlannerState): boolean {
   return (
     Object.keys(state.months).length > 0 ||
@@ -303,9 +272,11 @@ export function enterApp(): void {
   const st = s();
   if (st.appStarted) return;
   st.setAppStarted(true);
-  // No local cache: the DB is the single source of truth. Seed the in-memory state from any
-  // legacy localStorage data exactly once (upgrade path); a fresh device starts empty.
-  st.hydrate(readLegacyLocal(st.user));
+  // The DB is the single source of truth. Start EMPTY and let the first pull adopt the cloud copy.
+  // We deliberately do NOT seed from localStorage: a stale client state could win last-write-wins
+  // and delete rows the DB has (this once wiped a user's loans). Empty local always yields to the
+  // cloud, so a fresh open can never overwrite the DB. localStorage is no longer read at all.
+  st.hydrate(emptyState());
   st.setLoading(true); // show a loading screen until the first pull returns the cloud copy
   st.setSync('syncing');
   syncReady = false; // block pushes until the initial pull has reconciled with the cloud
@@ -313,7 +284,6 @@ export function enterApp(): void {
   // open must not bump the sync clock or push before we know whether the cloud copy is newer.
   pullRemote(() => {
     s().setLoading(false);
-    clearLegacyLocal(s().user); // migration done — localStorage is no longer used for planner data
     if (ratesStale(s().state)) {
       refreshRates((ok) => {
         if (ok) s().toast(tt('Currency rates refreshed'));
