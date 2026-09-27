@@ -1,0 +1,50 @@
+# All secrets and connection details come from the environment. See .env.example.
+spring:
+  application:
+    name: ledger-api
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ledger}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      # Schema is owned by Flyway + the existing Supabase tables. Never let Hibernate mutate it.
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    # The 11 planner tables already exist in Supabase; baseline so Flyway does not fail on a
+    # non-empty schema, and only apply the new migrations (users, advisor_reports, FK repoint).
+    baseline-on-migrate: true
+    baseline-version: 0
+
+server:
+  port: ${PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+app:
+  jwt:
+    # HS256 signing secret. MUST be provided in production (min 32 bytes recommended).
+    secret: ${JWT_SECRET:change-me-in-production-please-use-a-long-random-secret}
+    # Token lifetime in milliseconds (default 30 days).
+    ttl-millis: ${JWT_TTL_MILLIS:2592000000}
+  cors:
+    allowed-origin: ${ALLOWED_ORIGIN:http://localhost:5173}
+  anthropic:
+    api-key: ${ANTHROPIC_API_KEY:}
+    model: ${ANTHROPIC_MODEL:claude-sonnet-5}
+  advisor:
+    daily-limit: ${ADVISOR_DAILY_LIMIT:10}

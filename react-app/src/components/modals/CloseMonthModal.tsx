@@ -32,7 +32,7 @@ export function CloseMonthModal({ k }: { k: string }) {
       <div className="modal-note">
         {tt('How much money is actually left at the end of')} {labelFull(k)}? {tt('It will be added to your net worth as a banked leftover.')}
       </div>
-      <div className="field"><label>{tt('Leftover (KZT)')}</label><MoneyInput className="mono" value={amt} onCommit={setAmt} blankZero={false} /></div>
+      <div className="field"><label>{tt('Leftover')} ({state.baseCur})</label><MoneyInput className="mono" value={amt} onCommit={setAmt} blankZero={false} /></div>
       <div className="modal-note">
         {tt('Suggested')}: {tt('Income')} {fmt(t.income)} − {tt('Spent').toLowerCase()} {fmt(t.actual)} = {fmt(t.income - t.actual)}
       </div>

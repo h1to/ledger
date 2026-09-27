@@ -249,6 +249,7 @@ function AssetsList() {
 export function Dashboard() {
   const state = useStore((s) => s.state);
   const setYear = useStore((s) => s.setYear);
+  const setView = useStore((s) => s.setView);
   const openModal = useStore((s) => s.openModal);
   useStore((s) => s.lang);
 
@@ -298,6 +299,14 @@ export function Dashboard() {
       </div>
 
       <NBA />
+
+      <button className="analyze-card" onClick={() => setView('insights')}>
+        <div>
+          <div className="analyze-title">{tt('Analyze my finances')} <span className="tag ai">AI</span></div>
+          <div className="analyze-sub">{tt('Debt payoff plan, savings & budget insights')}</div>
+        </div>
+        <ChevronRight />
+      </button>
 
       <div className="grid stats-grid">
         <div className="card">

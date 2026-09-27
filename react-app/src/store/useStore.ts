@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { PlannerState, View, MonthKey, Lang, SyncState } from '../types';
-import { STORAGE_KEY } from '../constants';
 import { emptyState, normalizeState } from '../lib/migrate';
+import { setBaseCur } from '../lib/format';
 import { setCurrentLang, loadLang } from '../i18n';
 import { nowKey, keyYear } from '../lib/dates';
 
@@ -21,6 +21,8 @@ export type ModalState =
   | { type: 'income'; k: MonthKey }
   | { type: 'expense'; k: MonthKey }
   | { type: 'recurring'; id: string | null }
+  | { type: 'loan'; id: string | null }
+  | { type: 'importDebts' }
   | { type: 'goal'; id: string | null }
   | { type: 'contrib'; goalId: string }
   | { type: 'goalDetail'; goalId: string }
@@ -28,7 +30,7 @@ export type ModalState =
   | { type: 'rates' }
   | { type: 'import' }
   | { type: 'feedback' }
-  | { type: 'sync' }
+  | { type: 'settings' }
   | { type: 'more' };
 
 export interface ConfirmState {
@@ -42,11 +44,6 @@ export interface TourState {
 }
 
 let toastSeq = 0;
-let warnedStorage = false;
-
-function storageKeyFor(user: AuthUser | null): string {
-  return user ? STORAGE_KEY + '::' + user.id : STORAGE_KEY;
-}
 
 interface StoreShape {
   // planner data
@@ -57,7 +54,7 @@ interface StoreShape {
   view: View;
   openMonthKey: MonthKey | null;
   lang: Lang;
-  storageOK: boolean;
+  loading: boolean; // true while the initial cloud pull is in flight (no local cache to fall back on)
 
   // sync/session (owned by the sync controller, mirrored here for rendering)
   sync: SyncState;
@@ -71,18 +68,17 @@ interface StoreShape {
   modal: ModalState | null;
   confirm: ConfirmState | null;
   tour: TourState;
+  onboardingActive: boolean; // first-run setup wizard (distinct from the guided tour)
 
   /** Set by the sync controller: called after every user edit to schedule a cloud push. */
   pushHook: (() => void) | null;
   setPushHook: (fn: (() => void) | null) => void;
 
   // ---- actions ----
-  /** Apply an in-place mutation to the planner state, then persist + schedule a push. */
+  /** Apply an in-place mutation to the planner state, bump the clock, and push straight to the DB. */
   commit: (mutator: (s: PlannerState) => void) => void;
   /** Replace the whole planner state (from cloud/import/load) without bumping the sync clock. */
-  hydrate: (next: PlannerState, opts?: { persist?: boolean }) => void;
-  /** Persist the current state to localStorage for the current user. */
-  persist: () => void;
+  hydrate: (next: PlannerState) => void;
 
   setView: (v: View) => void;
   openMonth: (k: MonthKey) => void;
@@ -94,6 +90,7 @@ interface StoreShape {
   setSync: (s: SyncState) => void;
   setUser: (u: AuthUser | null) => void;
   setAppStarted: (v: boolean) => void;
+  setLoading: (v: boolean) => void;
   setGate: (mode: 'auth' | 'setup', msg?: string) => void;
 
   toast: (msg: string) => void;
@@ -107,6 +104,9 @@ interface StoreShape {
   startTour: () => void;
   setTour: (t: TourState) => void;
   endTour: () => void;
+
+  startOnboarding: () => void;
+  endOnboarding: () => void;
 }
 
 export const useStore = create<StoreShape>((set, get) => ({
@@ -116,7 +116,7 @@ export const useStore = create<StoreShape>((set, get) => ({
   view: 'dashboard',
   openMonthKey: null,
   lang: loadLang(),
-  storageOK: true,
+  loading: false,
 
   sync: 'off',
   user: null,
@@ -128,6 +128,7 @@ export const useStore = create<StoreShape>((set, get) => ({
   modal: null,
   confirm: null,
   tour: { active: false, index: 0 },
+  onboardingActive: false,
 
   pushHook: null,
   setPushHook: (fn) => set({ pushHook: fn }),
@@ -136,33 +137,15 @@ export const useStore = create<StoreShape>((set, get) => ({
     const s = get().state;
     mutator(s);
     s.lastModified = Date.now();
-    get().persist();
+    setBaseCur(s.baseCur); // keep fmt()'s base in sync (e.g. after changing the base currency)
     set((st) => ({ state: { ...s }, rev: st.rev + 1 }));
-    get().pushHook?.(); // schedule a cloud push (user edits only, never cloud loads)
+    get().pushHook?.(); // push straight to the DB (user edits only, never cloud loads)
   },
 
-  hydrate: (next, opts) => {
+  hydrate: (next) => {
     const normalized = normalizeState(next);
-    if (opts?.persist !== false) {
-      try {
-        localStorage.setItem(storageKeyFor(get().user), JSON.stringify(normalized));
-      } catch {
-        set({ storageOK: false });
-      }
-    }
+    setBaseCur(normalized.baseCur);
     set((st) => ({ state: normalized, rev: st.rev + 1 }));
-  },
-
-  persist: () => {
-    try {
-      localStorage.setItem(storageKeyFor(get().user), JSON.stringify(get().state));
-    } catch {
-      set({ storageOK: false });
-      if (!warnedStorage) {
-        warnedStorage = true;
-        get().toast('Saving unavailable (private mode?) — export CSV to keep data');
-      }
-    }
   },
 
   setView: (v) => set({ view: v }),
@@ -200,6 +183,7 @@ export const useStore = create<StoreShape>((set, get) => ({
   setSync: (s) => set({ sync: s }),
   setUser: (u) => set({ user: u }),
   setAppStarted: (v) => set({ appStarted: v }),
+  setLoading: (v) => set({ loading: v }),
   setGate: (mode, msg = '') => set({ gateMode: mode, gateMsg: msg }),
 
   toast: (msg) => {
@@ -222,6 +206,9 @@ export const useStore = create<StoreShape>((set, get) => ({
     });
     set({ tour: { active: false, index: 0 }, view: 'dashboard' });
   },
+
+  startOnboarding: () => set({ onboardingActive: true }),
+  endOnboarding: () => set({ onboardingActive: false, view: 'dashboard' }),
 }));
 
 /** Non-hook access for the sync controller and tests. */

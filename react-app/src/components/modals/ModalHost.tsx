@@ -3,6 +3,8 @@ import { AssetModal } from './AssetModal';
 import { IncomeModal } from './IncomeModal';
 import { ExpenseModal } from './ExpenseModal';
 import { RecurringModal } from './RecurringModal';
+import { LoanModal } from './LoanModal';
+import { ImportDebtsModal } from './ImportDebtsModal';
 import { GoalModal } from './GoalModal';
 import { ContribModal } from './ContribModal';
 import { GoalDetail } from './GoalDetail';
@@ -10,7 +12,7 @@ import { CloseMonthModal } from './CloseMonthModal';
 import { RatesModal } from './RatesModal';
 import { ImportModal } from './ImportModal';
 import { FeedbackModal } from './FeedbackModal';
-import { SyncModal } from './SyncModal';
+import { SettingsModal } from './SettingsModal';
 import { MoreSheet } from './MoreSheet';
 
 export function ModalHost() {
@@ -25,6 +27,10 @@ export function ModalHost() {
       return <ExpenseModal k={modal.k} />;
     case 'recurring':
       return <RecurringModal id={modal.id} />;
+    case 'loan':
+      return <LoanModal id={modal.id} />;
+    case 'importDebts':
+      return <ImportDebtsModal />;
     case 'goal':
       return <GoalModal id={modal.id} />;
     case 'contrib':
@@ -39,8 +45,8 @@ export function ModalHost() {
       return <ImportModal />;
     case 'feedback':
       return <FeedbackModal />;
-    case 'sync':
-      return <SyncModal />;
+    case 'settings':
+      return <SettingsModal />;
     case 'more':
       return <MoreSheet />;
   }

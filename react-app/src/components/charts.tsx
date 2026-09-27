@@ -40,8 +40,11 @@ export function DonutSvg({ entries, size = 130 }: { entries: CategoryAggregate[]
   );
 }
 
-export function DonutCard({ title, entries, infoKey }: { title: string; entries: CategoryAggregate[]; infoKey: string }) {
+export function DonutCard({ title, entries, infoKey, pctOf }: { title: string; entries: CategoryAggregate[]; infoKey: string; pctOf?: number }) {
   const total = entries.reduce((s, e) => s + e.val, 0);
+  // Legend percentages are shown relative to `pctOf` (e.g. income) when given, else to the
+  // pie total. The donut arcs are always proportional to the pie total (a ring must fill 360°).
+  const pctBase = pctOf && pctOf > 0 ? pctOf : total;
   const top = entries.slice(0, 8);
   return (
     <div className="card">
@@ -63,7 +66,7 @@ export function DonutCard({ title, entries, infoKey }: { title: string; entries:
                 <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {catLabel(e.name)}
                 </span>
-                <span className="dl-pct">{Math.round((e.val / total) * 100)}%</span>
+                <span className="dl-pct">{Math.round((e.val / pctBase) * 100)}%</span>
               </div>
             ))}
           </div>
@@ -185,6 +188,45 @@ export function NetWorthTrend({ state, year }: { state: PlannerState; year: numb
         ))}
       </div>
     </>
+  );
+}
+
+/**
+ * Debt-payoff projection: total remaining debt over time. Baseline (minimum payments, no
+ * rollover) is a dim pink dashed line; the accelerated plan is the solid green line with a soft
+ * fill and an emphasized "debt-free" endpoint. Curves are `remaining debt after each month`.
+ */
+export function DebtProjectionChart({ startDebt, baseline, accelerated }: { startDebt: number; baseline: number[]; accelerated: number[] }) {
+  const n = Math.max(baseline.length, accelerated.length, 1);
+  const W = 640;
+  const H = 180;
+  const pad = 12;
+  const maxY = Math.max(startDebt, 1);
+  const px = (i: number) => pad + (i * (W - 2 * pad)) / n;
+  const py = (v: number) => H - pad - (Math.max(0, v) / maxY) * (H - 2 * pad);
+  const path = (curve: number[]) => {
+    const pts = [startDebt, ...curve];
+    return pts.map((v, i) => (i ? 'L' : 'M') + px(i).toFixed(1) + ' ' + py(v).toFixed(1)).join(' ');
+  };
+  const area = () => {
+    const pts = [startDebt, ...accelerated];
+    return 'M' + px(0).toFixed(1) + ' ' + (H - pad) + ' ' + pts.map((v, i) => 'L' + px(i).toFixed(1) + ' ' + py(v).toFixed(1)).join(' ') + ' L' + px(pts.length - 1).toFixed(1) + ' ' + (H - pad) + ' Z';
+  };
+  const endX = accelerated.length;
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: 180, display: 'block' }}>
+        <line x1={pad} y1={H - pad} x2={W - pad} y2={H - pad} stroke="var(--border)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+        <path d={area()} fill="var(--green)" opacity={0.1} />
+        <path d={path(baseline)} fill="none" stroke="var(--pink)" strokeWidth={2} strokeDasharray="5 4" opacity={0.7} vectorEffect="non-scaling-stroke" />
+        <path d={path(accelerated)} fill="none" stroke="var(--green)" strokeWidth={2.5} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+        {endX <= n && <circle cx={px(endX).toFixed(1)} cy={py(0).toFixed(1)} r={4} fill="var(--green)" vectorEffect="non-scaling-stroke" />}
+      </svg>
+      <div className="legend" style={{ marginTop: 8 }}>
+        <div className="legend-item"><span className="legend-dot" style={{ background: 'var(--green)' }} />{tt('With your plan')}</div>
+        <div className="legend-item"><span className="legend-dot" style={{ background: 'var(--pink)' }} />{tt('Minimum payments')}</div>
+      </div>
+    </div>
   );
 }
 

@@ -44,6 +44,32 @@ export interface Recurring {
   end: MonthKey | null;
 }
 
+/**
+ * A loan / debt. A fixed monthly `payment` from `start` to `end` (inclusive) is auto-counted
+ * in each active month's expenses (category "Debts & loans"). `rate` (annual %) and
+ * `overpayment` (total interest over the loan's life, in `cur`) are optional info figures.
+ *
+ * Loans imported from a bank debt certificate carry `bank`, the remaining `debt` owed right
+ * now, the `contract` number and a type `kind` label; their `payment` starts at 0 (unknown —
+ * the certificates don't include it) until the user fills it in. `source` distinguishes
+ * imported rows (replaced on re-import) from manually-added ones.
+ */
+export interface Loan {
+  id: string;
+  name: string;
+  payment: number;
+  cur: Currency;
+  start: MonthKey;
+  end: MonthKey;
+  rate: number | null;
+  overpayment: number | null;
+  bank?: string | null;
+  debt?: number | null;
+  contract?: string | null;
+  kind?: string | null;
+  source?: 'manual' | 'import';
+}
+
 export interface Goal {
   id: string;
   name: string;
@@ -68,10 +94,13 @@ export interface Asset {
 /** The single persisted planner state object. */
 export interface PlannerState {
   year: number;
-  rates: Partial<Record<Currency, number>>; // 1 unit of currency = N KZT
+  /** the currency all totals, charts and net worth are expressed in. Defaults to KZT. */
+  baseCur: Currency;
+  rates: Partial<Record<Currency, number>>; // 1 unit of currency = N base-currency units (base itself is implicit 1, not stored)
   ratesUpdated: number | null;
   months: Record<MonthKey, Month>;
   recurring: Recurring[];
+  loans: Loan[];
   goals: Goal[];
   assets: Asset[];
   tourDone: boolean;
@@ -110,5 +139,5 @@ export interface DisplayFree {
   state: DisplayFreeState;
 }
 
-export type View = 'dashboard' | 'month' | 'savings' | 'recurring';
+export type View = 'dashboard' | 'month' | 'savings' | 'recurring' | 'loans' | 'insights';
 export type SyncState = 'off' | 'ready' | 'syncing' | 'synced' | 'error';

@@ -1,14 +1,17 @@
-import type { PlannerState } from '../types';
-import { CURRENCIES, DEFAULT_RATES, REC_CATEGORIES } from '../constants';
+import type { PlannerState, Currency } from '../types';
+import { CURRENCIES, REC_CATEGORIES } from '../constants';
+import { defaultRate } from './currency';
 
 /** A fresh, empty planner state. */
 export function emptyState(): PlannerState {
   return {
     year: new Date().getFullYear(),
+    baseCur: 'KZT',
     rates: {},
     ratesUpdated: null,
     months: {},
     recurring: [],
+    loans: [],
     goals: [],
     assets: [],
     tourDone: false,
@@ -25,20 +28,26 @@ export function normalizeState(raw: unknown): PlannerState {
   const base = emptyState();
   const p = (raw && typeof raw === 'object' ? raw : {}) as Partial<PlannerState>;
 
+  const baseCur: Currency = p.baseCur && CURRENCIES.indexOf(p.baseCur) >= 0 ? p.baseCur : 'KZT';
   const state: PlannerState = {
     year: p.year || base.year,
+    baseCur,
     months: (p.months as PlannerState['months']) || {},
     recurring: (p.recurring as PlannerState['recurring']) || [],
+    loans: (p.loans as PlannerState['loans']) || [],
     goals: (p.goals as PlannerState['goals']) || [],
     assets: (p.assets as PlannerState['assets']) || [],
     tourDone: !!p.tourDone,
-    rates: (p.rates as PlannerState['rates']) || {},
+    // clone: the base-currency delete + default fill below must not mutate the caller's object
+    rates: { ...(p.rates as PlannerState['rates']) },
     ratesUpdated: p.ratesUpdated || null,
     lastModified: p.lastModified || null,
   };
 
+  // rates hold every currency except the base; fill any missing/invalid with a default cross-rate.
+  delete state.rates[baseCur];
   CURRENCIES.forEach((c) => {
-    if (c !== 'KZT' && !((state.rates[c] || 0) > 0)) state.rates[c] = DEFAULT_RATES[c] || 1;
+    if (c !== baseCur && !((state.rates[c] || 0) > 0)) state.rates[c] = defaultRate(c, baseCur);
   });
 
   Object.keys(state.months).forEach((k) => {
@@ -60,6 +69,20 @@ export function normalizeState(raw: unknown): PlannerState {
   state.recurring.forEach((r) => {
     if (!r.cur) r.cur = 'KZT';
     if (!r.category) r.category = r.type === 'income' ? 'Income' : 'Other';
+  });
+
+  state.loans.forEach((l) => {
+    if (!l.cur) l.cur = baseCur;
+    if (!l.start) l.start = base.year + '-01';
+    if (!l.end) l.end = l.start;
+    if (l.rate === undefined) l.rate = null;
+    if (l.overpayment === undefined) l.overpayment = null;
+    if (l.bank === undefined) l.bank = null;
+    if (l.debt === undefined) l.debt = null;
+    if (l.contract === undefined) l.contract = null;
+    if (l.kind === undefined) l.kind = null;
+    if (!l.source) l.source = 'manual';
+    if (l.end < l.start) l.end = l.start; // heal any rows saved with an inverted window
   });
 
   state.goals.forEach((g) => {

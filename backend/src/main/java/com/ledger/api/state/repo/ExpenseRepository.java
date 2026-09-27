@@ -1,0 +1,17 @@
+package com.ledger.api.state.repo;
+
+import com.ledger.api.state.entity.ExpenseEntity;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+public interface ExpenseRepository extends JpaRepository<ExpenseEntity, String> {
+  List<ExpenseEntity> findByUserId(UUID userId);
+
+  @Modifying
+  @Query("delete from ExpenseEntity e where e.userId = :userId")
+  void deleteByUserId(@Param("userId") UUID userId);
+}

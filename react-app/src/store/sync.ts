@@ -7,12 +7,15 @@ import {
   EMBEDDED_SUPABASE_URL,
   EMBEDDED_SUPABASE_KEY,
   CURRENCIES,
-  RATES_URL,
+  ratesUrl,
   WEB3FORMS_KEY,
 } from '../constants';
-import { normalizeState } from '../lib/migrate';
+import { normalizeState, emptyState } from '../lib/migrate';
 import { stateForCompare } from '../lib/reconcile';
 import { tt } from '../i18n';
+import type { CloudDriver } from './cloud/driver';
+import { createRelationalDriver } from './cloud/relationalDriver';
+import { createBlobDriver } from './cloud/blobDriver';
 
 interface SyncCfg {
   url: string;
@@ -21,6 +24,7 @@ interface SyncCfg {
 
 let syncCfg: SyncCfg = { url: EMBEDDED_SUPABASE_URL, anonKey: EMBEDDED_SUPABASE_KEY };
 let sb: SupabaseClient | null = null;
+let driver: CloudDriver | null = null; // pluggable cloud persistence (relational by default)
 let authListenerSet = false;
 
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
@@ -31,10 +35,6 @@ let pendingPush = false;
 let syncReady = false;
 
 const s = useStore.getState; // shorthand for latest store snapshot
-
-function storageKeyFor(user: AuthUser | null): string {
-  return user ? STORAGE_KEY + '::' + user.id : STORAGE_KEY;
-}
 
 function loadSyncCfg(): void {
   try {
@@ -70,55 +70,63 @@ export function initSupabase(): boolean {
   if (!syncCfg.url || !syncCfg.anonKey) return false;
   try {
     sb = createClient(syncCfg.url, syncCfg.anonKey);
+    driver = import.meta.env.VITE_CLOUD_DRIVER === 'blob' ? createBlobDriver(sb) : createRelationalDriver(sb);
     authListenerSet = false;
     return true;
   } catch {
     sb = null;
+    driver = null;
     return false;
   }
+}
+
+/** Test-only: inject a fake cloud driver so reconciliation can be tested without Supabase. */
+export function __setDriverForTests(d: CloudDriver | null): void {
+  driver = d;
 }
 
 function toUser(sessionUser: { id: string; email?: string } | null | undefined): AuthUser | null {
   return sessionUser ? { id: sessionUser.id, email: sessionUser.email } : null;
 }
 
-// ---- persistence helpers ----
+// ---- one-time migration off localStorage ----
+// The DB is now the single source of truth; the app keeps no local planner-data cache.
+// On first entry we adopt whatever the old local-first version left in localStorage — once —
+// so upgrading users don't lose unsynced edits, then delete those keys for good.
 
-function loadLocal(user: AuthUser | null): PlannerState {
+function legacyKeyFor(user: AuthUser | null): string {
+  return user ? STORAGE_KEY + '::' + user.id : STORAGE_KEY;
+}
+
+function readLegacyLocal(user: AuthUser | null): PlannerState {
   let raw: string | null = null;
   try {
-    raw = localStorage.getItem(storageKeyFor(user));
-    if (!raw && user) {
-      // one-time adoption of data saved before login on this device
-      const legacy = localStorage.getItem(STORAGE_KEY);
-      if (legacy) {
-        raw = legacy;
-        localStorage.setItem(storageKeyFor(user), legacy);
-        try {
-          localStorage.removeItem(STORAGE_KEY);
-        } catch {
-          /* ignore */
-        }
-      }
-    }
+    raw = localStorage.getItem(legacyKeyFor(user)) || (user ? localStorage.getItem(STORAGE_KEY) : null);
   } catch {
     /* ignore */
   }
-  let parsed: unknown = {};
-  if (raw) {
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      parsed = {};
-    }
+  if (!raw) return emptyState();
+  try {
+    return normalizeState(JSON.parse(raw));
+  } catch {
+    return emptyState();
   }
-  return normalizeState(parsed);
+}
+
+function clearLegacyLocal(user: AuthUser | null): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    if (user) localStorage.removeItem(legacyKeyFor(user));
+  } catch {
+    /* ignore */
+  }
 }
 
 function meaningfulLocalData(state: PlannerState): boolean {
   return (
     Object.keys(state.months).length > 0 ||
     state.recurring.length > 0 ||
+    (state.loans?.length ?? 0) > 0 ||
     state.goals.length > 0 ||
     state.assets.length > 0
   );
@@ -132,9 +140,24 @@ export function schedulePush(): void {
   pushTimer = setTimeout(pushRemote, 1500);
 }
 
+/**
+ * Best-effort flush of a debounced/queued push — fired when the tab is hidden or closing so an
+ * edit made within the 1.5s debounce window isn't lost. There is no local cache to fall back on
+ * (the DB is the single source of truth by design), so this narrows the abrupt-close data-loss gap.
+ */
+export function flushPendingPush(): void {
+  if (pushTimer) {
+    clearTimeout(pushTimer);
+    pushTimer = null;
+    pushRemote();
+  } else if (pendingPush) {
+    pushRemote();
+  }
+}
+
 export function pushRemote(): void {
   const user = s().user;
-  if (!sb || !user) return;
+  if (!driver || !user) return;
   if (!syncReady) {
     pendingPush = true;
     return;
@@ -145,57 +168,47 @@ export function pushRemote(): void {
   }
   pushInFlight = true;
   s().setSync('syncing');
-  sb.from('planner_data')
-    .upsert({ user_id: user.id, data: s().state, updated_at: new Date().toISOString() })
-    .then((res) => {
+  driver
+    .save(user.id, s().state)
+    .then(() => {
       pushInFlight = false;
-      if (res.error) {
-        s().setSync('error');
-        s().toast('Sync push failed: ' + res.error.message);
-      } else s().setSync('synced');
+      s().setSync('synced');
       if (pendingPush) {
         pendingPush = false;
         pushRemote();
       }
+    })
+    .catch((e: unknown) => {
+      pushInFlight = false;
+      pendingPush = false; // don't tight-loop on a persistent error; the next pull/edit retries
+      s().setSync('error');
+      s().toast('Sync push failed: ' + (e instanceof Error ? e.message : String(e)));
     });
 }
 
 export function pullRemote(after?: () => void): void {
   const user = s().user;
-  if (!sb || !user) {
+  if (!driver || !user) {
     if (after) after();
     return;
   }
   s().setSync('syncing');
-  sb.from('planner_data')
-    .select('data,updated_at')
-    .eq('user_id', user.id)
-    .maybeSingle()
-    .then((res) => {
+  driver
+    .load(user.id)
+    .then((result) => {
       // Reconciliation is happening now — from here this device is allowed to push again.
       syncReady = true;
       const finish = () => {
         if (after) after();
-        maybeStartTour();
+        maybeStartOnboarding();
       };
-      if (res.error) {
-        s().setSync('error');
-        s().toast('Sync error: ' + res.error.message);
-        if (pendingPush) {
-          pendingPush = false;
-          pushRemote();
-        }
-        finish();
-        return;
-      }
-      const row = res.data as { data?: PlannerState; updated_at?: string } | null;
-      if (!row || !row.data) {
+      if (!result) {
         pendingPush = false;
         pushRemote();
         finish();
         return;
-      } // empty cloud row — seed it from local
-      const remote = row.data;
+      } // empty cloud — seed it from local
+      const remote = result.state;
       const local = s().state;
       if (stateForCompare(remote) === stateForCompare(local)) {
         s().setSync('synced');
@@ -214,7 +227,7 @@ export function pullRemote(after?: () => void): void {
         finish();
         return;
       }
-      const remoteT = Number(remote.lastModified) || (row.updated_at ? new Date(row.updated_at).getTime() : 0);
+      const remoteT = Number(remote.lastModified) || (result.updatedAt ? new Date(result.updatedAt).getTime() : 0);
       const localT = Number(local.lastModified) || 0;
       if (remoteT > localT) {
         s().hydrate(remote);
@@ -226,6 +239,17 @@ export function pullRemote(after?: () => void): void {
         pushRemote(); // local is same age or newer — this device wins
       }
       finish();
+    })
+    .catch((e: unknown) => {
+      syncReady = true;
+      s().setSync('error');
+      s().toast('Sync error: ' + (e instanceof Error ? e.message : String(e)));
+      if (pendingPush) {
+        pendingPush = false;
+        pushRemote();
+      }
+      if (after) after();
+      maybeStartOnboarding();
     });
 }
 
@@ -240,13 +264,14 @@ export function refreshRates(cb?: (ok: boolean) => void): void {
     cb?.(false);
     return;
   }
-  fetch(RATES_URL)
+  const base = s().state.baseCur || 'KZT';
+  fetch(ratesUrl(base))
     .then((r) => r.json())
     .then((d) => {
       if (d && d.result === 'success' && d.rates) {
         s().commit((state) => {
           CURRENCIES.forEach((c) => {
-            if (c !== 'KZT' && d.rates[c] > 0) state.rates[c] = 1 / d.rates[c];
+            if (c !== base && d.rates[c] > 0) state.rates[c] = 1 / d.rates[c];
           });
           state.ratesUpdated = Date.now();
         });
@@ -258,16 +283,18 @@ export function refreshRates(cb?: (ok: boolean) => void): void {
 
 // ---- tour ----
 
-function maybeStartTour(): void {
+// First-run: a brand-new, empty account gets the setup wizard (the guided tour stays available
+// from the Guide button). Existing accounts with data have already been through it — mark done.
+function maybeStartOnboarding(): void {
   const st = s();
-  if (st.tour.active || !st.appStarted || st.state.tourDone) return;
+  if (st.onboardingActive || st.tour.active || !st.appStarted || st.state.tourDone) return;
   if (meaningfulLocalData(st.state)) {
     st.commit((state) => {
       state.tourDone = true;
     });
     return;
   }
-  st.startTour();
+  st.startOnboarding();
 }
 
 // ---- session lifecycle ----
@@ -276,13 +303,17 @@ export function enterApp(): void {
   const st = s();
   if (st.appStarted) return;
   st.setAppStarted(true);
-  const local = loadLocal(st.user);
-  st.hydrate(local, { persist: false });
+  // No local cache: the DB is the single source of truth. Seed the in-memory state from any
+  // legacy localStorage data exactly once (upgrade path); a fresh device starts empty.
+  st.hydrate(readLegacyLocal(st.user));
+  st.setLoading(true); // show a loading screen until the first pull returns the cloud copy
   st.setSync('syncing');
   syncReady = false; // block pushes until the initial pull has reconciled with the cloud
   // Refresh currency rates only AFTER reconciling — refreshing calls commit(), and a save on
   // open must not bump the sync clock or push before we know whether the cloud copy is newer.
   pullRemote(() => {
+    s().setLoading(false);
+    clearLegacyLocal(s().user); // migration done — localStorage is no longer used for planner data
     if (ratesStale(s().state)) {
       refreshRates((ok) => {
         if (ok) s().toast(tt('Currency rates refreshed'));
@@ -309,9 +340,19 @@ function attachAuthListener(): void {
   });
 }
 
+let flushListenersSet = false;
+
 /** Boot: wire the store->push hook, init supabase, restore any session. */
 export function boot(): void {
   useStore.getState().setPushHook(schedulePush);
+  if (!flushListenersSet && typeof window !== 'undefined') {
+    flushListenersSet = true;
+    // flush a pending push when the tab is backgrounded (mobile) or closed
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') flushPendingPush();
+    });
+    window.addEventListener('pagehide', flushPendingPush);
+  }
   loadSyncCfg();
   if (!initSupabase()) {
     s().setGate('setup', '');
@@ -382,9 +423,10 @@ export async function signOut(): Promise<void> {
   await sb.auth.signOut();
   s().setUser(null);
   s().setAppStarted(false);
+  s().hydrate(emptyState()); // no local cache — clear the in-memory copy on sign-out
   s().setSync('ready');
   s().setGate('auth', '');
-  s().toast(tt('Signed out — data stays on this device'));
+  s().toast(tt('Signed out'));
 }
 
 // ---- feedback ----

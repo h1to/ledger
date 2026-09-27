@@ -11,6 +11,8 @@ import {
   monthTotals,
   recurringForMonth,
   recEffectiveActual,
+  loansForMonth,
+  loanEffectiveActual,
   monthCategoryBreakdown,
   goalSaved,
   goalNeededPerMonth,
@@ -139,7 +141,7 @@ function IncomeTable({ k }: { k: string }) {
         ))}
       </tbody>
       <tfoot>
-        <tr><td>{tt('Total (KZT)')}</td><td style={{ textAlign: 'right' }}>{fmt(t.income)}</td><td></td><td></td></tr>
+        <tr><td>{tt('Total')} ({state.baseCur})</td><td style={{ textAlign: 'right' }}>{fmt(t.income)}</td><td></td><td></td></tr>
       </tfoot>
     </table>
   );
@@ -154,7 +156,22 @@ function ExpenseTable({ k }: { k: string }) {
   const t = monthTotals(state, k);
   const savRows = state.goals.filter((g) => (Number(g.contribs[k]) || 0) > 0);
 
-  if (!m.expenses.length && !recExp.length && !savRows.length)
+  // one row per bank: that bank's total loan payment active this month (converted to base currency)
+  const loanRows = (() => {
+    const map = new Map<string, { planned: number; actual: number }>();
+    loansForMonth(state, k).forEach((l) => {
+      const p = Number(l.payment) || 0;
+      if (p <= 0) return;
+      const key = l.bank && l.bank.trim() ? l.bank.trim() : 'Other';
+      const g = map.get(key) || { planned: 0, actual: 0 };
+      g.planned += toKZT(state, p, l.cur);
+      g.actual += toKZT(state, loanEffectiveActual(k, l), l.cur);
+      map.set(key, g);
+    });
+    return Array.from(map.entries()).sort((a, b) => b[1].planned - a[1].planned);
+  })();
+
+  if (!m.expenses.length && !recExp.length && !savRows.length && !loanRows.length)
     return <div className="empty" style={{ border: 'none' }}>{tt('No planned expenses yet.')}</div>;
 
   return (
@@ -184,6 +201,19 @@ function ExpenseTable({ k }: { k: string }) {
             </tr>
           );
         })}
+        {loanRows.map(([bankName, g]) => (
+          <tr key={'loan-' + bankName}>
+            <td style={{ paddingLeft: 8, whiteSpace: 'nowrap' }}>
+              {bankName === 'Other' ? tt('Other') : bankName} <span className="tag rec">{tt('loan')}</span>
+            </td>
+            <td><span className="tag">{catLabel('Debts & loans')}</span></td>
+            <td style={{ textAlign: 'right' }} className="mono">{fmtNum(g.planned)}</td>
+            <td style={{ textAlign: 'right' }} className="mono">{fmtNum(g.actual)}</td>
+            <td style={{ textAlign: 'center' }} className="mono">{state.baseCur}</td>
+            <td style={{ textAlign: 'right' }}><VarianceTag planned={g.planned} actual={g.actual} cur={state.baseCur} /></td>
+            <td></td>
+          </tr>
+        ))}
         {savRows.map((g) => {
           const c = Number(g.contribs[k]) || 0;
           return (
@@ -192,7 +222,7 @@ function ExpenseTable({ k }: { k: string }) {
               <td><span className="tag">{catLabel('Savings')}</span></td>
               <td style={{ textAlign: 'right' }} className="mono">{fmtNum(c)}</td>
               <td style={{ textAlign: 'right' }} className="mono">{fmtNum(c)}</td>
-              <td style={{ textAlign: 'center' }} className="mono">KZT</td>
+              <td style={{ textAlign: 'center' }} className="mono">{state.baseCur}</td>
               <td style={{ textAlign: 'right' }}><span className="tag">{tt('on plan')}</span></td>
               <td></td>
             </tr>
@@ -227,7 +257,7 @@ function ExpenseTable({ k }: { k: string }) {
       </tbody>
       <tfoot>
         <tr>
-          <td colSpan={2}>{tt('Total (KZT)')}</td>
+          <td colSpan={2}>{tt('Total')} ({state.baseCur})</td>
           <td style={{ textAlign: 'right' }}>{fmt(t.planned)}</td>
           <td style={{ textAlign: 'right' }}>{fmt(t.actual)}</td>
           <td></td>
@@ -263,7 +293,7 @@ function SavingsSection({ k }: { k: string }) {
             <MoneyInput
               className="cell-input mono in"
               value={val}
-              title="Contribution this month (KZT)"
+              title={tt('Contribution this month') + ' (' + state.baseCur + ')'}
               onCommit={(v) =>
                 commit((s) => {
                   const goal = s.goals.find((x) => x.id === g.id);
@@ -300,9 +330,9 @@ function MonthAnalytics({ k }: { k: string }) {
         </div>
       </div>
       <div style={{ height: 12 }} />
-      <DonutCard title={tt('Actual spending by category')} entries={monthCategoryBreakdown(state, k, 'actual')} infoKey="pie_actual" />
+      <DonutCard title={tt('Actual spending by category')} entries={monthCategoryBreakdown(state, k, 'actual')} infoKey="pie_actual" pctOf={t.income} />
       <div style={{ height: 12 }} />
-      <DonutCard title={tt('Planned by category')} entries={monthCategoryBreakdown(state, k, 'planned')} infoKey="pie_planned" />
+      <DonutCard title={tt('Planned by category')} entries={monthCategoryBreakdown(state, k, 'planned')} infoKey="pie_planned" pctOf={t.income} />
     </>
   );
 }

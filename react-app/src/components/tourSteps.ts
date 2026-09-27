@@ -17,5 +17,5 @@ export const TOUR: TourStep[] = [
   { view: 'month', sel: '#savings-card', title: 'Pay yourself first', text: 'Send part of the month to your goals. Contributions count as expenses and reduce free-to-spend — honest math.' },
   { view: 'savings', sel: '#goals-grid', title: 'Savings goals', text: 'Set a target and a deadline — the app computes the monthly amount needed and tracks pace. Money here also builds your safety runway on the dashboard.' },
   { view: 'recurring', sel: '#rec-list', title: 'Recurring payments', text: 'Add rent, loans, subscriptions or a salary once — they are included in every month until their end date.' },
-  { view: 'dashboard', sel: '#btn-sync', title: 'Saved and synced', text: 'Everything saves automatically and syncs to the cloud — sign in on any device and your planner follows. Use the Sync menu for backups. Enjoy!' },
+  { view: 'dashboard', sel: '#btn-sync', title: 'Saved and synced', text: 'Everything saves automatically and syncs to the cloud — sign in on any device and your planner follows. Open Settings for backups, rates and sign-out. Enjoy!' },
 ];

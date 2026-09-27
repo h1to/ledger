@@ -10,6 +10,7 @@ function GateAuth() {
   const [mode, setMode] = useState<'in' | 'up'>('in');
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
+  const [pass2, setPass2] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(gateMsg);
 
@@ -18,6 +19,7 @@ function GateAuth() {
   async function submit() {
     if (!email || !pass) { setMsg(tt('Enter email and password')); return; }
     if (mode === 'up' && pass.length < 6) { setMsg(tt('Password must be at least 6 characters')); return; }
+    if (mode === 'up' && pass !== pass2) { setMsg(tt('Passwords do not match')); return; }
     setBusy(true);
     try {
       if (mode === 'in') {
@@ -47,7 +49,7 @@ function GateAuth() {
           {mode === 'in' ? tt('Sign in to open your planner.') : tt('One account keeps your planner in sync on every device.')}
         </div>
         <div className="seg">
-          <button type="button" className={mode === 'in' ? 'on' : ''} onClick={() => setMode('in')}>{tt('Sign in')}</button>
+          <button type="button" className={mode === 'in' ? 'on' : ''} onClick={() => { setMode('in'); setPass2(''); }}>{tt('Sign in')}</button>
           <button type="button" className={mode === 'up' ? 'on' : ''} onClick={() => setMode('up')}>{tt('Register')}</button>
         </div>
         {msg && <div className={'gate-msg ' + (isOk ? 'ok' : 'err')}>{msg}</div>}
@@ -56,6 +58,11 @@ function GateAuth() {
         <div className="field"><label>{tt('Password')}</label>
           <input type="password" autoComplete={mode === 'in' ? 'current-password' : 'new-password'} value={pass} placeholder={tt('min. 6 characters')}
             onChange={(e) => setPass(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') submit(); }} /></div>
+        {mode === 'up' && (
+          <div className="field"><label>{tt('Confirm password')}</label>
+            <input type="password" autoComplete="new-password" value={pass2} placeholder={tt('Repeat your password')}
+              onChange={(e) => setPass2(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') submit(); }} /></div>
+        )}
         <button className="btn btn-primary" disabled={busy} onClick={submit}>
           {busy ? (mode === 'in' ? tt('Signing in…') : tt('Creating…')) : mode === 'in' ? tt('Sign in') : tt('Create account')}
         </button>

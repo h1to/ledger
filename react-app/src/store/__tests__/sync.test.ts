@@ -1,106 +1,122 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-// ---- controllable fake Supabase ----
-const cloud: { row: { data: unknown; updated_at: string } | null } = { row: null };
-let upserts = 0;
-
-vi.mock('@supabase/supabase-js', () => {
-  const builder = {
-    select: () => builder,
-    eq: () => builder,
-    maybeSingle: () => Promise.resolve({ data: cloud.row, error: null }),
-    upsert: (rec: { data: unknown; updated_at: string }) => {
-      upserts++;
-      cloud.row = { data: JSON.parse(JSON.stringify(rec.data)), updated_at: rec.updated_at };
-      return Promise.resolve({ error: null });
+// Minimal supabase mock so initSupabase() doesn't throw. Pull/push go through the injected
+// fake driver below, so the client's query methods are never exercised here.
+vi.mock('@supabase/supabase-js', () => ({
+  createClient: () => ({
+    from: () => ({}),
+    auth: {
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+      getSession: async () => ({ data: { session: null } }),
     },
-    insert: () => Promise.resolve({ error: null }),
-  };
-  return {
-    createClient: () => ({
-      from: () => builder,
-      auth: {
-        onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
-        getSession: () => Promise.resolve({ data: { session: null } }),
-      },
-    }),
-  };
-});
+  }),
+}));
 
 import { useStore } from '../useStore';
-import { pullRemote, pushRemote, __resetSyncStateForTests } from '../sync';
+import { pullRemote, pushRemote, __resetSyncStateForTests, __setDriverForTests } from '../sync';
 import { emptyState } from '../../lib/migrate';
+import type { CloudDriver } from '../cloud/driver';
+import type { PlannerState } from '../../types';
 
-function localMonths() {
-  return Object.keys(useStore.getState().state.months).sort();
-}
-function cloudMonths() {
-  const d = cloud.row?.data as { months?: Record<string, unknown> } | undefined;
-  return d?.months ? Object.keys(d.months).sort() : [];
-}
-const tick = () => new Promise((r) => setTimeout(r, 0));
 const M = () => ({ incomes: [], expenses: [], recActuals: {} });
+const withMonths = (months: PlannerState['months'], lastModified: number): PlannerState => ({ ...emptyState(), months, lastModified });
+
+// ---- in-memory fake cloud driver ----
+let cloudState: PlannerState | null = null;
+let saveCount = 0;
+const fakeDriver: CloudDriver = {
+  load: async () => (cloudState ? { state: JSON.parse(JSON.stringify(cloudState)), updatedAt: null } : null),
+  save: async (_uid, st) => {
+    saveCount++;
+    cloudState = JSON.parse(JSON.stringify(st));
+  },
+};
+
+const localMonths = () => Object.keys(useStore.getState().state.months).sort();
+const cloudMonths = () => (cloudState ? Object.keys(cloudState.months).sort() : []);
+const tick = () => new Promise((r) => setTimeout(r, 0));
 
 beforeEach(() => {
-  cloud.row = null;
-  upserts = 0;
+  cloudState = null;
+  saveCount = 0;
   localStorage.clear();
   useStore.setState({ state: emptyState(), user: { id: 'u1', email: 'a@b.c' }, appStarted: true, tour: { active: false, index: 0 } });
-  __resetSyncStateForTests(); // wires push hook + initialises the mocked client (no session fetch)
+  __resetSyncStateForTests();
+  __setDriverForTests(fakeDriver);
 });
 
-describe('sync reconciliation (startup-race fix)', () => {
+describe('sync reconciliation (driver-agnostic; startup-race fix)', () => {
   it('a stale device does not overwrite a newer cloud copy', async () => {
-    // CLOUD holds the newer copy
-    cloud.row = { data: { ...emptyState(), months: { '2026-09': { incomes: [], expenses: [], recActuals: {} } }, lastModified: 2000 }, updated_at: new Date(2000).toISOString() };
-    // LOCAL is stale
-    useStore.setState({ state: { ...emptyState(), months: { '2026-01': { incomes: [], expenses: [], recActuals: {} } }, lastModified: 1000 } });
+    cloudState = withMonths({ '2026-09': M() }, 2000);
+    useStore.setState({ state: withMonths({ '2026-01': M() }, 1000) });
 
     await new Promise<void>((resolve) => pullRemote(resolve));
     await tick();
 
     expect(localMonths()).toEqual(['2026-09']); // cloud won
-    expect(cloudMonths()).toEqual(['2026-09']); // stale local was NOT pushed
+    expect(cloudMonths()).toEqual(['2026-09']); // cloud untouched
+    expect(saveCount).toBe(0); // stale local was NOT pushed
   });
 
   it('blocks pushes before the first reconcile (push gate)', async () => {
-    cloud.row = { data: { ...emptyState(), months: { '2026-09': M() }, lastModified: 2000 }, updated_at: '' };
-    useStore.setState({ state: { ...emptyState(), months: { '2026-01': M() }, lastModified: 1000 } });
-    // simulate a background save's push firing during the boot window (before any pull)
-    pushRemote();
+    cloudState = withMonths({ '2026-09': M() }, 2000);
+    useStore.setState({ state: withMonths({ '2026-01': M() }, 1000) });
+    pushRemote(); // background save's push firing before any pull
     await tick();
-    expect(upserts).toBe(0);
+    expect(saveCount).toBe(0);
     expect(cloudMonths()).toEqual(['2026-09']);
   });
 
   it('a genuinely newer local edit wins and is pushed', async () => {
-    cloud.row = { data: { ...emptyState(), months: { '2026-09': M() }, lastModified: 2000 }, updated_at: '' };
-    useStore.setState({ state: { ...emptyState(), months: { '2026-12': M() }, lastModified: 3000 } });
+    cloudState = withMonths({ '2026-09': M() }, 2000);
+    useStore.setState({ state: withMonths({ '2026-12': M() }, 3000) });
 
     await new Promise<void>((resolve) => pullRemote(resolve));
     await tick();
 
     expect(cloudMonths()).toEqual(['2026-12']);
     expect(localMonths()).toEqual(['2026-12']);
+    expect(saveCount).toBe(1);
+  });
+
+  it('seeds an empty cloud from local', async () => {
+    cloudState = null;
+    useStore.setState({ state: withMonths({ '2026-03': M() }, 5) });
+    await new Promise<void>((resolve) => pullRemote(resolve));
+    await tick();
+    expect(cloudMonths()).toEqual(['2026-03']);
+  });
+
+  it('treats loans as meaningful data — freshly imported loans are not clobbered by an older cloud copy', async () => {
+    cloudState = withMonths({}, 1000); // older, no loans
+    const local: PlannerState = { ...emptyState(), lastModified: 3000, loans: [
+      { id: 'l1', name: 'Halyk · X', bank: 'Halyk', debt: 300000, contract: null, kind: null, source: 'import', payment: 0, cur: 'KZT', start: '2026-09', end: '2026-09', rate: null, overpayment: null },
+    ] };
+    useStore.setState({ state: local });
+
+    await new Promise<void>((resolve) => pullRemote(resolve));
+    await tick();
+
+    expect(useStore.getState().state.loans).toHaveLength(1); // kept, not overwritten by remote
+    expect(saveCount).toBe(1); // local (newer, meaningful) pushed to cloud
+    expect(cloudState?.loans).toHaveLength(1);
   });
 });
 
 describe('store primitives', () => {
-  it('commit bumps lastModified, persists, and triggers a push after reconcile', async () => {
-    // reconcile once so pushes are allowed
-    cloud.row = { data: emptyState(), updated_at: '' };
+  it('commit bumps the clock and pushes straight to the DB after reconcile', async () => {
+    cloudState = emptyState();
     await new Promise<void>((resolve) => pullRemote(resolve));
     await tick();
-    upserts = 0;
+    saveCount = 0;
 
-    useStore.getState().commit((s) => {
-      s.goals.push({ id: 'g', name: 'X', target: 1, deadline: null, contribs: {} });
+    useStore.getState().commit((st) => {
+      st.goals.push({ id: 'g', name: 'X', target: 1, deadline: null, contribs: {} });
     });
     expect(useStore.getState().state.lastModified).toBeGreaterThan(0);
-    // localStorage was written
-    expect(localStorage.getItem('ledger_planner_v1::u1')).toContain('"name":"X"');
     await new Promise((r) => setTimeout(r, 1600)); // debounced push
-    expect(upserts).toBeGreaterThan(0);
+    expect(saveCount).toBeGreaterThan(0);
+    expect(cloudState?.goals[0]?.name).toBe('X');
   });
 
   it('openMonth creates the month and switches view', () => {

@@ -22,7 +22,8 @@ export const MONTH_FULL_RU = ['Январь', 'Февраль', 'Март', 'А�
 export const CURRENCIES: Currency[] = ['KZT', 'USD', 'EUR', 'RUB', 'GBP', 'TRY'];
 export const CUR_SYMBOLS: Record<Currency, string> = { KZT: '₸', USD: '$', EUR: '€', RUB: '₽', GBP: '£', TRY: '₺' };
 export const DEFAULT_RATES: Partial<Record<Currency, number>> = { USD: 540, EUR: 590, RUB: 6.7, GBP: 680, TRY: 13 };
-export const RATES_URL = 'https://open.er-api.com/v6/latest/KZT';
+/** Live-rates endpoint for a given base currency (1 base = N of each other currency). */
+export const ratesUrl = (base: string) => 'https://open.er-api.com/v6/latest/' + base;
 
 export const PIE_COLORS = ['#34D399', '#FAFAFA', '#F87171', '#60A5FA', '#FBBF24', '#A78BFA', '#F472B6', '#2DD4BF', '#FB923C', '#9CA3AF'];
 

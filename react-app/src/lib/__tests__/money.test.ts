@@ -47,9 +47,18 @@ describe('toKZT', () => {
   it('converts using the rate', () => {
     expect(toKZT(seed(), 100, 'USD')).toBe(54000);
   });
-  it('falls back to 1 for an unknown rate', () => {
+  it('falls back to a default cross-rate when the rate is missing', () => {
     const st = makeState({ rates: {} });
-    expect(toKZT(st, 100, 'USD')).toBe(100);
+    expect(toKZT(st, 100, 'USD')).toBe(54000); // default USD≈540 KZT
+  });
+});
+
+describe('base currency', () => {
+  it('converts to the configured base, and treats the base as 1:1', () => {
+    const st = makeState({ baseCur: 'USD', rates: { KZT: 1 / 540, EUR: 590 / 540 } });
+    expect(toKZT(st, 100, 'USD')).toBe(100); // base is unchanged
+    expect(toKZT(st, 540, 'KZT')).toBeCloseTo(1, 6); // 540 KZT ≈ 1 USD
+    expect(toKZT(st, 1, 'EUR')).toBeCloseTo(590 / 540, 6);
   });
 });
 

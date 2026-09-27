@@ -21,6 +21,13 @@ describe('normalizeState', () => {
     expect(p.recurring[0].category).toBe('Income');
   });
 
+  it('heals a loan saved with an inverted repayment window', () => {
+    const p = normalizeState({
+      loans: [{ id: 'l', name: 'X', payment: 0, cur: 'KZT', start: '2026-09', end: '2026-08', debt: 100000, source: 'import' }],
+    });
+    expect(p.loans[0].end).toBe('2026-09'); // clamped up to start, never before it
+  });
+
   it('returns a fresh empty state for junk input', () => {
     const p = normalizeState(null);
     expect(p).toMatchObject({ months: {}, recurring: [], goals: [], assets: [] });

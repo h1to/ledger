@@ -5,6 +5,8 @@ import {
   toKZT,
   recurringForMonth,
   recEffectiveActual,
+  loansForMonth,
+  loanEffectiveActual,
   hasData,
   monthTotals,
   netWorth,
@@ -30,6 +32,10 @@ export function essentialSpendInMonth(state: PlannerState, k: MonthKey): number 
     m.expenses.forEach((e) => {
       if (ESSENTIAL_CATEGORIES[e.category]) total += toKZT(state, e.actual, e.cur);
     });
+  // loan payments are essential debt service ("Debts & loans")
+  loansForMonth(state, k).forEach((l) => {
+    total += toKZT(state, loanEffectiveActual(k, l), l.cur);
+  });
   return total;
 }
 
@@ -60,6 +66,9 @@ export function fixedCostsMonthly(state: PlannerState, k: MonthKey = nowKey()): 
   let total = 0;
   recurringForMonth(state, k).forEach((r) => {
     if (r.type === 'expense') total += toKZT(state, r.amount, r.cur);
+  });
+  loansForMonth(state, k).forEach((l) => {
+    total += toKZT(state, l.payment, l.cur);
   });
   return total;
 }
