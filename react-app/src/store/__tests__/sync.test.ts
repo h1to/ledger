@@ -13,7 +13,7 @@ vi.mock('@supabase/supabase-js', () => ({
 }));
 
 import { useStore } from '../useStore';
-import { pullRemote, pushRemote, __resetSyncStateForTests, __setDriverForTests } from '../sync';
+import { pullRemote, pushRemote, enterApp, __resetSyncStateForTests, __setDriverForTests } from '../sync';
 import { emptyState } from '../../lib/migrate';
 import type { CloudDriver } from '../cloud/driver';
 import type { PlannerState } from '../../types';
@@ -85,6 +85,25 @@ describe('sync reconciliation (driver-agnostic; startup-race fix)', () => {
     await new Promise<void>((resolve) => pullRemote(resolve));
     await tick();
     expect(cloudMonths()).toEqual(['2026-03']);
+  });
+
+  it('regression: a fresh open ignores localStorage and can NEVER overwrite the cloud (wiped-loans incident)', async () => {
+    // A stale local cache with a NEWER clock but MISSING the cloud's loans — the exact shape that
+    // once won last-write-wins and deleted a user's loans from the DB.
+    const staleLocal = { ...emptyState(), recurring: [{ id: 'r', name: 'Rent', type: 'expense', category: 'Housing', amount: 1, cur: 'KZT', start: '2026-01', end: null }], lastModified: 9_999_999_999_999 };
+    localStorage.setItem('ledger_planner_v1::u1', JSON.stringify(staleLocal));
+    // cloud is OLDER but holds the real loans
+    cloudState = { ...emptyState(), loans: [{ id: 'l1', name: 'Halyk', bank: 'Halyk', debt: 300000, contract: null, kind: null, source: 'import', payment: 0, cur: 'KZT', start: '2026-09', end: '2026-09', rate: null, overpayment: null }], lastModified: 1000 };
+    useStore.setState({ state: emptyState(), appStarted: false });
+
+    enterApp();
+    await tick();
+    await tick();
+
+    expect(useStore.getState().state.loans).toHaveLength(1); // cloud adopted
+    expect(useStore.getState().state.recurring).toHaveLength(0); // stale localStorage NOT adopted
+    expect(saveCount).toBe(0); // nothing pushed — the cloud was never overwritten
+    expect(cloudState?.loans).toHaveLength(1); // loans intact in the cloud
   });
 
   it('treats loans as meaningful data — freshly imported loans are not clobbered by an older cloud copy', async () => {
